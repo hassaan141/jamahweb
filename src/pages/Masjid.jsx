@@ -1,38 +1,57 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useParams, Link } from "react-router-dom"
-import { fetchDailyPrayerTimes, fetchOrganizationById } from "../services/supabase/api"
+import { useParams, useLocation, Link } from "react-router-dom"
+import { fetchDailyPrayerTimes, fetchOrganizationById, fetchMasjids } from "../services/supabase/api"
 import PrayerTimes from "../components/PrayerTimes"
 import Header from "../components/Header"
 import Footer from "../components/Footer"
 
 export default function Masjid() {
-  const { id } = useParams()
+  const { slug } = useParams()
+  const location = useLocation()
   const [prayerTimes, setPrayerTimes] = useState(null)
   const [org, setOrg] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
+  // small slug -> id resolution helper
+  function slugify(str) {
+    return String(str || '')
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9\-]/g, '')
+      .replace(/-+/g, '-')
+  }
+
   useEffect(() => {
     ;(async () => {
+      setLoading(true)
       try {
-        const [ptRes, orgRes] = await Promise.all([fetchDailyPrayerTimes(id), fetchOrganizationById(id)])
-        console.log("[Masjid] params.id =", id)
-        console.log("[Masjid] prayerTimes result =", ptRes)
-        console.log("[Masjid] organization result =", orgRes)
+        // Resolve organization by slug only (no id in URL)
+        const { data: masjids, error: listError } = await fetchMasjids()
+        if (listError) throw listError
+        const found = (masjids || []).find((o) => slugify(o.name) === slug)
+        if (!found) throw new Error('Masjid not found')
+        const orgId = found.id
+
+        const [ptRes, orgRes] = await Promise.all([fetchDailyPrayerTimes(orgId), fetchOrganizationById(orgId)])
+        console.log('[Masjid] resolved id =', orgId)
+        console.log('[Masjid] prayerTimes result =', ptRes)
+        console.log('[Masjid] organization result =', orgRes)
         if (ptRes.error) throw ptRes.error
         if (orgRes.error) throw orgRes.error
         setPrayerTimes(ptRes.data)
         setOrg(orgRes.data)
       } catch (e) {
-        console.error("[Masjid] error", e)
+        console.error('[Masjid] error', e)
         setError(e)
       } finally {
         setLoading(false)
       }
     })()
-  }, [id])
+  }, [slug])
 
   if (loading) {
     return (

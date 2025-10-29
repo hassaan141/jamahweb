@@ -1,6 +1,7 @@
 "use client"
 
 import { Link } from "react-router-dom"
+import { useState, useEffect } from 'react'
 import moment from "moment-hijri"
 
 export default function Header({
@@ -11,6 +12,19 @@ export default function Header({
   backTo = "/",
   titleColor,
 }) {
+  // current time state (updates every second)
+  const [time, setTime] = useState(moment().format('HH:mm:ss'))
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTime(moment().format('HH:mm:ss'))
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [])
+
+  // Hijri date pieces: numeric (7/5/1447) and Arabic month name
+  const hijriNumeric = moment().format('iD/iM/iYYYY')
+  const hijriArabicMonth = moment().locale('ar').format('iMMMM')
   return (
     <header style={styles.headerWrapper}>
       <div style={styles.topBar}>
@@ -26,7 +40,12 @@ export default function Header({
 
         <div style={styles.centerSection}>
           <div style={styles.islamicDateCenter}>
-            {moment().format('iD')} {moment().locale('ar').format('iMMMM')} {moment().format('iYYYY')}
+            {/* Numeric Hijri date like 7/5/1447 + Arabic month */}
+            <div style={styles.hijriNumeric}>
+              {hijriNumeric} {hijriArabicMonth}
+            </div>
+            {/* Live current time (HH:mm:ss) */}
+            <div style={styles.currentTime} id="header-current-time">{time}</div>
           </div>
         </div>
 
@@ -34,9 +53,16 @@ export default function Header({
           <a href="mailto:info@awqat.net" style={styles.metaLink}>
             <span style={styles.metaIcon}>✉</span> info@awqat.net
           </a>
-          <span style={styles.metaBadge} title="Muslim Funeral Aid Services">
+          <a
+            href="https://awqat.net/MFASInfo.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={styles.metaBadge}
+            title="Muslim Funeral Aid Services"
+            aria-label="Muslim Funeral Aid Services PDF"
+          >
             Funeral Aid Services
-          </span>
+          </a>
         </div>
       </div>
 
@@ -125,6 +151,18 @@ const styles = {
     letterSpacing: "0.01em",
     lineHeight: 1.4,
     textAlign: "center",
+  },
+  hijriNumeric: {
+    fontSize: 16,
+    fontWeight: 800,
+    color: "#065f46",
+    marginBottom: 2,
+  },
+  currentTime: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: "#064e3b",
+    marginTop: 2,
   },
   metaSection: {
     display: "flex",

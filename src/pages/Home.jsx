@@ -99,7 +99,19 @@ export default function Home() {
   }, [masjids, userLocation])
 
   const handleSelect = (m) => {
-    if (m?.id) navigate(`/masjid/${m.id}`)
+    if (m?.id) {
+      const slug = slugify(m.name || String(m.id))
+      navigate(`/masjid/${slug}`)
+    }
+  }
+
+  function slugify(str) {
+    return String(str || '')
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, '-') // spaces to dashes
+      .replace(/[^a-z0-9\-]/g, '') // remove invalid chars
+      .replace(/-+/g, '-')
   }
 
   if (loading) {

@@ -70,17 +70,33 @@ export default function MapView({ masjids = [], center, userLocation, highlightM
             </Popup>
           </Marker>
         )}
-        {valid.map((m) => (
-          <Marker key={m.id} position={[m.latitude, m.longitude]} icon={masjidIcon}>
-            <Popup>
-              <div>
-                <strong>{m.name}</strong>
-                <div>{m.address}</div>
-                {highlightMasjidId === m.id && <div style={{ marginTop: 6, color: "#059669", fontWeight: 600 }}>Nearest to you</div>}
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+        {valid.map((m) => {
+          const slug = String(m.name || m.id)
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, '-')
+            .replace(/[^a-z0-9\-]/g, '')
+            .replace(/-+/g, '-')
+          const href = `/masjid/${slug}`
+          return (
+            <Marker key={m.id} position={[m.latitude, m.longitude]} icon={masjidIcon}>
+              <Popup>
+                <div>
+                  <strong>{m.name}</strong>
+                  <div>{m.address}</div>
+                  <div style={{ marginTop: 8 }}>
+                    <a href={href} style={{ color: '#059669', fontWeight: 700, textDecoration: 'none' }}>
+                      View prayer times
+                    </a>
+                  </div>
+                  {highlightMasjidId === m.id && (
+                    <div style={{ marginTop: 6, color: "#059669", fontWeight: 600 }}>Nearest to you</div>
+                  )}
+                </div>
+              </Popup>
+            </Marker>
+          )
+        })}
       </MapContainer>
     </div>
   )
