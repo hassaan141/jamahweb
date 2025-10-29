@@ -8,10 +8,8 @@ export async function fetchMasjids() {
     .eq('is_active', true)
     .eq('type', 'masjid')
     .order('name', { ascending: true })
-  // Simple logs (always on)
   console.log('[fetchMasjids]', { count: data?.length || 0, error })
   if (process.env.NODE_ENV !== 'production') {
-    // eslint-disable-next-line no-console
     console.log('[supabase] fetchMasjids ->', { count: data?.length || 0, error })
   }
   return { data: data || [], error }
@@ -20,7 +18,6 @@ export async function fetchMasjids() {
 export async function fetchDailyPrayerTimes(organizationId) {
   console.log('[fetchDailyPrayerTimes] start', { organizationId })
 
-  // Log auth/session to see if we're anon (RLS often blocks anon)
   try {
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
     if (sessionError) {
@@ -76,7 +73,7 @@ export async function fetchDailyPrayerTimes(organizationId) {
 export async function fetchOrganizationById(id) {
   const { data, error } = await supabase
     .from('organizations')
-    .select('id, name, address, city, latitude, longitude')
+    .select('id, name, address, city, province_state, country, latitude, longitude')
     .eq('id', id)
     .maybeSingle()
   // Simple logs (always on)
