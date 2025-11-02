@@ -40,9 +40,10 @@ export default function Masjid() {
         const orgId = found.id
 
         const [ptRes, orgRes] = await Promise.all([fetchDailyPrayerTimes(orgId), fetchOrganizationById(orgId)])
-        console.log('[Masjid] resolved id =', orgId)
-        console.log('[Masjid] prayerTimes result =', ptRes)
-        console.log('[Masjid] organization result =', orgRes)
+        if (process.env.NODE_ENV !== 'production') {
+          // eslint-disable-next-line no-console
+          console.log('[Masjid] resolved id =', orgId)
+        }
         if (ptRes.error) throw ptRes.error
         if (orgRes.error) throw orgRes.error
         setPrayerTimes(ptRes.data)
@@ -70,7 +71,7 @@ export default function Masjid() {
       <div style={styles.errorContainer}>
         <div style={styles.errorCard}>
           <div style={styles.errorTitle}>Unable to load prayer times</div>
-          <div style={styles.errorText}>{String(error?.message || "Please try again later")}</div>
+          <div style={styles.errorText}>Please try again later</div>
           <Link to="/" style={styles.errorButton}>
             Return Home
           </Link>

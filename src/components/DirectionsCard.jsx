@@ -33,7 +33,10 @@ export default function DirectionsCard({ org }) {
           : null
 
       const url = isIOS ? apple : google
-      if (url) window.open(url, isIOS ? '_self' : '_blank')
+      if (url) {
+        const win = window.open(url, isIOS ? '_self' : '_blank', 'noopener,noreferrer')
+        if (win) { try { win.opener = null } catch {} }
+      }
     } catch (e) {
       // no-op
     }
