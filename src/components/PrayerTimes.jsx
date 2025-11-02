@@ -30,38 +30,38 @@ export default function PrayerTimes({ prayerTimes }) {
 
   return (
     <div style={styles.card}>
-      <div style={styles.header}>
-        <span style={styles.headerText}>Prayer Times</span>
-      </div>
-      <div style={styles.tableContainer}>
-        <table style={styles.table}>
-          <thead>
-            <tr style={styles.headerRow}>
-              <th style={styles.th}>Salat</th>
-              <th style={styles.th}>Adhan</th>
-              <th style={styles.th}>Iqamah</th>
-            </tr>
-          </thead>
-          <tbody>
-            {prayers.map((prayer, idx) => (
-              <tr
-                key={idx}
-                style={styles.row}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "#f9fafb"
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "transparent"
-                }}
-              >
-                <td style={styles.prayerName}>{prayer.name}</td>
-                <td style={styles.time}>{String(prayer.adhan)}</td>
-                <td style={styles.time}>{String(prayer.iqamah)}</td>
+        <div style={styles.header}>
+          <span style={styles.headerText}>Prayer Times</span>
+        </div>
+        <div style={styles.tableContainer}>
+          <table style={styles.table}>
+            <thead>
+              <tr style={styles.headerRow}>
+                <th style={styles.th}>Salat</th>
+                <th style={styles.th}>Adhan</th>
+                <th style={styles.th}>Iqamah</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {prayers.map((prayer, idx) => (
+                <tr
+                  key={idx}
+                  style={styles.row}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#f9fafb'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent'
+                  }}
+                >
+                  <td style={styles.prayerName}>{prayer.name}</td>
+                  <td style={styles.time}>{String(prayer.adhan)}</td>
+                  <td style={styles.time}>{String(prayer.iqamah)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
     </div>
   )
 }
@@ -155,6 +155,8 @@ if (typeof document !== "undefined") {
       th[style*="text-transform: uppercase"] { font-size: 11px !important; padding: 10px 8px !important; }
       td[style*="text-align: center"][style*="padding: 18px 16px"] { padding: 14px 8px !important; font-size: 14px !important; }
       td[style*="text-align: left"][style*="font-weight: 600"] { padding: 14px 8px !important; font-size: 14px !important; }
+      div[style*="display: flex"][style*="justify-content: space-between"][style*="max-width: 600"] { flex-direction: column !important; align-items: center !important; }
+      div[style*="background: #ecfdf5"][style*="border: 1px solid #a7f3d0"] { width: 100% !important; }
     }
   `
   if (!document.head.querySelector("style[data-prayer-times-responsive]")) {

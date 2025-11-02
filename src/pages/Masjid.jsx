@@ -4,6 +4,8 @@ import { useEffect, useState } from "react"
 import { useParams, useLocation, Link } from "react-router-dom"
 import { fetchDailyPrayerTimes, fetchOrganizationById, fetchMasjids } from "../services/supabase/api"
 import PrayerTimes from "../components/PrayerTimes"
+import DateBar from "../components/DateBar"
+import UpcomingPrayer from "../components/UpcomingPrayer"
 import Header from "../components/Header"
 import Footer from "../components/Footer"
 
@@ -90,6 +92,8 @@ export default function Masjid() {
         />
 
         <main style={styles.main}>
+          <DateBar />
+          {prayerTimes && <UpcomingPrayer prayerTimes={prayerTimes} />}
           {prayerTimes ? (
             <PrayerTimes prayerTimes={prayerTimes} />
           ) : (
@@ -160,7 +164,7 @@ const styles = {
   main: {
     maxWidth: 800,
     margin: "0 auto",
-    padding: "40px 16px 64px",
+    padding: "16px 16px 56px",
   },
   loadingContainer: {
     display: "flex",

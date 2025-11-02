@@ -37,7 +37,6 @@ export async function fetchDailyPrayerTimes(organizationId) {
     .from('daily_prayer_times')
     .select('*')
     .eq('organization_id', organizationId)
-    .order('prayer_date', { ascending: false })
     .limit(1)
 
   if (error) {
