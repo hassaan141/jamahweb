@@ -27,10 +27,10 @@ export default function Header({
   const hijriArabicMonth = moment().locale('ar').format('iMMMM')
   return (
     <header style={styles.headerWrapper}>
-      <div style={styles.topBar}>
+      <div style={styles.topBar} className="header-topbar">
         <div style={styles.brandSection}>
           <div style={styles.logoWrap}>
-            <img src={logoSrc} alt="Logo" style={styles.logo} />
+            <img src={logoSrc} alt="Logo" style={styles.logo} className="header-logo" />
           </div>
           <div style={styles.brandText}>
             <div style={styles.brandName}>Awqat</div>
@@ -49,7 +49,7 @@ export default function Header({
           </div>
         </div>
 
-        <div style={styles.metaSection}>
+        <div style={styles.metaSection} className="header-meta">
           <a href="mailto:info@awqat.net" style={styles.metaLink}>
             <span style={styles.metaIcon}>✉</span> info@awqat.net
           </a>
@@ -58,6 +58,7 @@ export default function Header({
             target="_blank"
             rel="noopener noreferrer"
             style={styles.metaBadge}
+            className="meta-badge"
             title="Muslim Funeral Aid Services"
             aria-label="Muslim Funeral Aid Services PDF"
           >
@@ -67,14 +68,14 @@ export default function Header({
       </div>
 
       <div style={styles.hero}>
-        <div style={styles.heroInner}>
+        <div style={styles.heroInner} className="header-hero-inner">
           {showBack && (
-            <Link to={backTo} style={styles.backLink}>
+            <Link to={backTo} style={styles.backLink} className="header-back">
               <span style={styles.backArrow}>←</span> Back
             </Link>
           )}
           <div style={styles.titleWrapper}>
-            <h1 style={{ ...styles.title, ...(titleColor ? { color: titleColor } : null) }}>{title}</h1>
+            <h1 style={{ ...styles.title, ...(titleColor ? { color: titleColor } : null) }} className="header-title">{title}</h1>
             {subtitle ? <p style={styles.subtitle}>{subtitle}</p> : null}
           </div>
         </div>
@@ -257,14 +258,15 @@ if (typeof document !== "undefined") {
     a[style*="metaLink"]:hover { background: #d1fae5 !important; }
     a[style*="backLink"]:hover { background: #d1fae5 !important; transform: translateY(-1px); }
     @media (max-width: 768px) {
-      div[style*="topBar"] { flex-direction: column !important; align-items: center !important; gap: 8px !important; }
-      div[style*="metaSection"] { justify-content: center !important; }
+      .header-topbar { grid-template-columns: 1fr !important; gap: 10px !important; }
+      .header-meta { justify-content: center !important; }
+      .header-back { position: static !important; margin-bottom: 8px !important; }
     }
     @media (max-width: 640px) {
-      h1[style*="title"] { font-size: 20px !important; }
-      div[style*="topBar"] { padding: 8px 12px !important; }
-      img[alt="Logo"] { width: 24px !important; height: 24px !important; }
-      span[style*="metaBadge"] { display: none !important; }
+      .header-title { font-size: 20px !important; }
+      .header-topbar { padding: 8px 12px !important; }
+      .header-logo { width: 48px !important; height: 48px !important; }
+      .meta-badge { display: none !important; }
     }
   `
   if (!document.head.querySelector('style[data-header-styles]')) {

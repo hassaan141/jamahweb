@@ -54,7 +54,7 @@ export default function MapView({ masjids = [], center, userLocation, highlightM
   const centerLng = center?.lng ?? fallbackLng
 
   return (
-    <div style={styles.container}>
+    <div style={styles.container} className="map-wrap">
       <MapContainer center={[centerLat, centerLng]} zoom={13} style={styles.map} scrollWheelZoom>
         <Recenter center={[centerLat, centerLng]} />
         <TileLayer
@@ -142,4 +142,17 @@ const styles = {
     fontSize: 14,
     fontWeight: 500,
   },
+}
+
+if (typeof document !== 'undefined') {
+  const responsive = document.createElement('style')
+  responsive.textContent = `
+    @media (max-width: 640px) {
+      .map-wrap { height: min(60vh, 420px) !important; border-radius: 12px !important; }
+    }
+  `
+  if (!document.head.querySelector('style[data-mapview-responsive]')) {
+    responsive.setAttribute('data-mapview-responsive', 'true')
+    document.head.appendChild(responsive)
+  }
 }

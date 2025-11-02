@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import moment from 'moment-hijri'
 
 export default function UpcomingPrayer({ prayerTimes }) {
-  const [tick, setTick] = useState(0) // changes every minute
+  const [tick, setTick] = useState(0) // tick every second for live countdown
 
   useEffect(() => {
     // update every second for second-level countdown
@@ -15,39 +15,101 @@ export default function UpcomingPrayer({ prayerTimes }) {
   const next = useMemo(() => {
     if (!prayerTimes) return null
 
-    const keys = [
-      { name: 'Fajr', azanKey: 'fajr_azan' },
-      { name: 'Sunrise', azanKey: 'sunrise' },
-      { name: 'Dhuhr', azanKey: 'dhuhr_azan' },
-      { name: 'Asr', azanKey: 'asr_azan' },
-      { name: 'Maghrib', azanKey: 'maghrib_azan' },
-      { name: 'Isha', azanKey: 'isha_azan' },
-    ]
-
-    const formats = ['HH:mm', 'H:mm', 'h:mm A', 'hh:mm A']
-    const today = moment()
-    const list = keys
-      .map(({ name, azanKey }) => {
-        const t = prayerTimes[azanKey]
-        const s = (t == null ? '' : String(t)).trim()
-        if (!s || s === '-') return null
-        const m = moment(s, formats, false)
-        if (!m.isValid()) return null
-        m.year(today.year()).month(today.month()).date(today.date())
-        return { name, m, raw: t }
-      })
-      .filter(Boolean)
-
-    const now = moment()
-    let found = list.find((p) => p.m.isAfter(now))
-    if (!found && list.length) {
-      const first = list[0]
-      found = { ...first, m: first.m.clone().add(1, 'day') }
+    // Helper: parse "HH:MM" from any string (ignores AM/PM text if present)
+    function parseHHMM(str) {
+      const s = (str == null ? '' : String(str)).trim()
+      if (!s || s === '-') return null
+      const match = s.match(/(\d{1,2}):(\d{2})/)
+      if (!match) return null
+      let h = parseInt(match[1], 10)
+      const m = parseInt(match[2], 10)
+      if (Number.isNaN(h) || Number.isNaN(m)) return null
+      return { h, m }
     }
-    if (!found) return null
 
-    const diffMs = found.m.diff(now)
-    return { name: found.name, at: found.m, raw: found.raw, diffMs }
+    // Helper: build a moment for today with AM/PM inference rules
+    function toMomentFor(prayerName, timeStr, base) {
+      const parsed = parseHHMM(timeStr)
+      if (!parsed) return null
+      const { m } = parsed
+      let { h } = parsed
+      // AM/PM inference
+      if (['Dhuhr', 'Asr', 'Maghrib', 'Isha'].includes(prayerName)) {
+        // Force PM for these prayers
+        if (h < 12) h += 12
+      } else if (prayerName === 'Fajr') {
+        // Fajr: 12:xx means midnight
+        if (h === 12) h = 0
+      }
+      const t = (base || moment()).clone()
+      t.hour(h).minute(m).second(0).millisecond(0)
+      return t
+    }
+
+    const FIELD_BY_NAME = {
+      Fajr: 'fajr_azan',
+      Sunrise: 'sunrise',
+      Dhuhr: 'dhuhr_azan',
+      Asr: 'asr_azan',
+      Maghrib: 'maghrib_azan',
+      Isha: 'isha_azan',
+    }
+
+    const ORDER = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha']
+    const now = moment()
+    const today = now.clone()
+
+    // Build today's moments per rule
+    const moments = {}
+    for (const name of ORDER) {
+      const field = FIELD_BY_NAME[name]
+      const raw = prayerTimes[field]
+      const m = toMomentFor(name, raw, today)
+      if (m && m.isValid()) moments[name] = { name, at: m, raw }
+    }
+
+    // Special case: after Isha and before ~4am, target Tomorrow Fajr
+    const isha = moments.Isha?.at
+    const fajr = moments.Fajr?.at
+    const tomorrow4am = now.clone().startOf('day').add(1, 'day').hour(4).minute(0).second(0)
+    if (isha && fajr && now.isAfter(isha) && now.isBefore(tomorrow4am)) {
+      const at = fajr.clone().add(1, 'day')
+      return {
+        name: 'Fajr',
+        at,
+        raw: moments.Fajr.raw,
+        diffMs: at.diff(now),
+        isTomorrow: true,
+      }
+    }
+
+    // Otherwise pick the next prayer in order that is after now
+    for (const name of ORDER) {
+      const entry = moments[name]
+      if (entry && entry.at.isAfter(now)) {
+        return {
+          name: entry.name,
+          at: entry.at,
+          raw: entry.raw,
+          diffMs: entry.at.diff(now),
+          isTomorrow: false,
+        }
+      }
+    }
+
+    // If none left today, it's Tomorrow Fajr
+    if (fajr) {
+      const at = fajr.clone().add(1, 'day')
+      return {
+        name: 'Fajr',
+        at,
+        raw: moments.Fajr.raw,
+        diffMs: at.diff(now),
+        isTomorrow: true,
+      }
+    }
+
+    return null
   }, [prayerTimes, tick])
 
   function formatCountdown(diffMs) {
@@ -71,7 +133,8 @@ export default function UpcomingPrayer({ prayerTimes }) {
       <div style={styles.upRight}>
         <span style={styles.upName}>{next.name}</span>
         <span style={styles.dot}>•</span>
-        <span style={styles.upTime}>{next.at.format('HH:mm')}</span>
+        <span style={styles.upTime}>{next.at.format('h:mm A')}</span>
+        {next.isTomorrow ? <span style={styles.upTomorrow}>(tomorrow)</span> : null}
       </div>
     </div>
   )
@@ -110,4 +173,5 @@ const styles = {
     fontVariantNumeric: 'tabular-nums',
   },
   dot: { color: '#059669', opacity: 0.8 },
+  upTomorrow: { fontSize: 13, color: '#065f46', opacity: 0.8 },
 }

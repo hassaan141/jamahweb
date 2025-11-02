@@ -8,6 +8,7 @@ import DateBar from "../components/DateBar"
 import UpcomingPrayer from "../components/UpcomingPrayer"
 import Header from "../components/Header"
 import Footer from "../components/Footer"
+import DirectionsCard from "../components/DirectionsCard"
 
 export default function Masjid() {
   const { slug } = useParams()
@@ -102,6 +103,7 @@ export default function Masjid() {
               <div style={styles.emptyText}>Please check back later</div>
             </div>
           )}
+          {org ? <DirectionsCard org={org} /> : null}
         </main>
       </div>
       <Footer />
