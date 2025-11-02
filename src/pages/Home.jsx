@@ -148,6 +148,10 @@ export default function Home() {
             )}
           </div>
           <MapView masjids={masjids} center={mapCenter} userLocation={userLocation} highlightMasjidId={nearestMasjidId} />
+          <div style={styles.locationNote}>
+            Note: Your current location may be slightly offset
+            {Number.isFinite(userLocation?.accuracy) ? ` (±${Math.round(userLocation.accuracy)} m)` : ''}.
+          </div>
         </main>
       </div>
       <Footer />
@@ -259,6 +263,13 @@ const styles = {
   emptyText: {
     fontSize: 14,
     color: "#9ca3af",
+  },
+  locationNote: {
+    maxWidth: 800,
+    margin: "8px auto 0",
+    textAlign: "center",
+    color: "#6b7280",
+    fontSize: 12,
   },
 }
 
