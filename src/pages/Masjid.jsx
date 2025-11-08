@@ -14,6 +14,7 @@ import ActionButtons from "../components/ActionButtons"
 export default function Masjid() {
   const { slug } = useParams()
   const [prayerTimes, setPrayerTimes] = useState(null)
+  const [comparePrayerTimes, setComparePrayerTimes] = useState(null)
   const [dayChoice, setDayChoice] = useState('today') // 'today' | 'tomorrow'
   const [org, setOrg] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -80,16 +81,26 @@ export default function Masjid() {
         if (ptRes.error) throw ptRes.error
         if (!active) return
         setPrayerTimes(ptRes.data)
+
+        // fetch the alternate day (other day) so we can compare rows
+        // if current is today, compare with tomorrow; if current is tomorrow, compare with today
+        const alt = new Date(selectedDate)
+        const delta = dayChoice === 'today' ? 1 : -1
+        alt.setDate(alt.getDate() + delta)
+        const compareRes = await fetchDailyPrayerTimes(orgId, alt)
+        if (!active) return
+        setComparePrayerTimes(compareRes.error ? null : compareRes.data)
       } catch (e) {
         console.error('[Masjid] prayer fetch error', e)
         if (!active) return
         setPrayerTimes(null)
+        setComparePrayerTimes(null)
       } finally {
         if (active) setPrayerLoading(false)
       }
     })()
     return () => { active = false }
-  }, [orgId, selectedDate])
+  }, [orgId, selectedDate, dayChoice])
 
   if (loading) {
     return (
@@ -146,7 +157,11 @@ export default function Masjid() {
             prayerLoading ? (
               <div style={placeholderStyles.table} aria-busy="true" aria-live="polite">Loading…</div>
             ) : (
-              <PrayerTimes prayerTimes={prayerTimes} />
+              <PrayerTimes
+                prayerTimes={prayerTimes}
+                comparePrayerTimes={comparePrayerTimes}
+                highlightChanges={dayChoice === 'tomorrow'}
+              />
             )
           ) : (
             <div style={styles.emptyCard}>
