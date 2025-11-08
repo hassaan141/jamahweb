@@ -158,7 +158,7 @@ const styles = {
   topBar: {
     maxWidth: 1000,
     margin: "0 auto",
-    padding: "10px 16px",
+    padding: "8px 16px",
     display: "grid",
     gridTemplateColumns: "1fr auto 1fr",
     alignItems: "center",
@@ -167,7 +167,7 @@ const styles = {
   brandSection: {
     display: "flex",
     alignItems: "center",
-    gap: 12,
+    gap: 10,
   },
   logoWrap: {
     width: 64,
@@ -281,7 +281,7 @@ const styles = {
   },
   menuIcon: { fontSize: 16, lineHeight: 1 },
   hero: {
-    padding: "12px 16px",
+    padding: "8px 16px",
     textAlign: "center",
     background: "#f0fdf4",
     borderTop: "1px solid #e5e7eb",
@@ -342,13 +342,29 @@ if (typeof document !== "undefined") {
     }
     @media (max-width: 640px) {
       .header-title { font-size: 18px !important; }
-      .header-topbar { padding: 8px 12px !important; }
-      .header-logo { width: 40px !important; height: 40px !important; }
+      .header-topbar { 
+        padding: 8px 12px !important; 
+        grid-template-columns: 1fr auto !important;
+        gap: 12px !important;
+        justify-items: center;
+      }
+      /* Hide logo on mobile for more space */
+      .header-topbar .logoWrap { display: none !important; }
+      /* Adjust brand text positioning */
+      .header-topbar .brandSection { justify-self: start !important; }
+      .header-topbar .brandName { font-size: 18px !important; }
+      .header-topbar .brandTag { font-size: 12px !important; }
+      /* Center date/time section with better spacing */
+      .header-topbar .centerSection { justify-self: center !important; }
+      .header-topbar .islamicDateCenter { font-size: 14px !important; }
+      .header-topbar .hijriNumeric { font-size: 14px !important; margin-bottom: 2px !important; }
+      .header-topbar .currentTime { font-size: 12px !important; margin-top: 2px !important; }
       /* Hide the right-side links, show hamburger */
       .header-meta { display: none !important; }
       .header-menu-btn { display: inline-flex !important; margin-left: auto; }
+      /* Hero section with better spacing */
       .header-hero { padding: 6px 12px !important; }
-      .header-hero-inner h1 { margin-top: 0 !important; }
+      .header-hero-inner h1 { margin-top: 2px !important; }
       .header-hero-inner p { margin-top: 2px !important; font-size: 13px !important; }
     }
   `

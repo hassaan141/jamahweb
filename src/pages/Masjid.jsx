@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useParams, Link } from "react-router-dom"
 import { fetchDailyPrayerTimes, fetchOrganizationById, fetchMasjids } from "../services/supabase/api"
 import PrayerTimes from "../components/PrayerTimes"
@@ -9,8 +9,7 @@ import UpcomingPrayer from "../components/UpcomingPrayer"
 import DateToggle from "../components/DateToggle"
 import Header from "../components/Header"
 import Footer from "../components/Footer"
-import DirectionsCard from "../components/DirectionsCard"
-import LinksCard from "../components/LinksCard"
+import ActionButtons from "../components/ActionButtons"
 
 export default function Masjid() {
   const { slug } = useParams()
@@ -35,9 +34,11 @@ export default function Masjid() {
   // Helper to produce YYYY-MM-DD (local)
   // toYMD removed (unused)
 
-  const today = new Date()
-  const tomorrow = new Date(Date.now() + 24*60*60*1000)
-  const selectedDate = dayChoice === 'today' ? today : tomorrow
+  const selectedDate = useMemo(() => {
+    const today = new Date()
+    const tomorrow = new Date(Date.now() + 24*60*60*1000)
+    return dayChoice === 'today' ? today : tomorrow
+  }, [dayChoice])
 
   
 
@@ -88,7 +89,7 @@ export default function Masjid() {
       }
     })()
     return () => { active = false }
-  }, [orgId, dayChoice])
+  }, [orgId, selectedDate])
 
   if (loading) {
     return (
@@ -153,8 +154,7 @@ export default function Masjid() {
               <div style={styles.emptyText}>Please check back later</div>
             </div>
           )}
-          {org ? <DirectionsCard org={org} /> : null}
-          {org ? <LinksCard org={org} /> : null}
+          {org ? <ActionButtons org={org} /> : null}
         </main>
       </div>
       <Footer />

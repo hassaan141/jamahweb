@@ -4,11 +4,12 @@ import { useEffect, useMemo, useState } from 'react'
 import moment from 'moment-hijri'
 
 export default function UpcomingPrayer({ prayerTimes, baseDate, align = 'center' }) {
-  const [tick, setTick] = useState(0) // tick every second for live countdown
+  // internal second ticker (value intentionally ignored; only triggers re-render)
+  const [, forceTick] = useState(0)
 
   useEffect(() => {
     // update every second for second-level countdown
-    const iv = setInterval(() => setTick((t) => t + 1), 1000)
+    const iv = setInterval(() => forceTick((t) => t + 1), 1000)
     return () => clearInterval(iv)
   }, [])
 
