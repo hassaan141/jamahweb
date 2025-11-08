@@ -1,3 +1,4 @@
+// ...existing code...
 "use client"
 
 import { Link } from "react-router-dom"
@@ -12,18 +13,9 @@ export default function Header({
   backTo = "/",
   titleColor,
 }) {
-  // current time state (updates every second)
-  const [time, setTime] = useState(moment().format('HH:mm:ss'))
   const [menuOpen, setMenuOpen] = useState(false)
   const menuBtnRef = useRef(null)
   const [menuStyle, setMenuStyle] = useState({})
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTime(moment().format('HH:mm:ss'))
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [])
 
   // Close menu on escape
   useEffect(() => {
@@ -52,9 +44,26 @@ export default function Header({
     }
   }, [menuOpen])
 
-  // Hijri date pieces: numeric (7/5/1447) and Arabic month name
+  // Hijri date pieces: numeric (7/5/1447), Arabic month name, and transliteration
   const hijriNumeric = moment().format('iD/iM/iYYYY')
   const hijriArabicMonth = moment().locale('ar').format('iMMMM')
+  const hijriMonthIndex = parseInt(moment().format('iM'), 10) - 1
+  const hijriTranslitMap = [
+    'Muharram',
+    'Safar',
+    "Rabi' al-awwal",
+    "Rabi' al-thani",
+    'Jumada al-ula',
+    'Jumada al-akhirah',
+    'Rajab',
+    "Sha'ban",
+    'Ramadan',
+    'Shawwal',
+    "Dhu al-Qi'dah",
+    "Dhu al-Hijjah"
+  ]
+  const hijriTranslitMonth = hijriTranslitMap[hijriMonthIndex] || ''
+
   return (
     <header style={styles.headerWrapper}>
       <div style={styles.topBar} className="header-topbar">
@@ -62,10 +71,10 @@ export default function Header({
           <div style={styles.logoWrap}>
             <img src={logoSrc} alt="Logo" style={styles.logo} className="header-logo" />
           </div>
-          <div style={styles.brandText}>
-            <div style={styles.brandName}>Awqat</div>
+          {/* <div style={styles.brandText}> */}
+            {/* <div style={styles.brandName}>Awqat</div>
             <div style={styles.brandTag}>Prayer Times</div>
-          </div>
+          </div> */}
         </div>
 
         <div style={styles.centerSection}>
@@ -74,8 +83,8 @@ export default function Header({
             <div style={styles.hijriNumeric}>
               {hijriNumeric} {hijriArabicMonth}
             </div>
-            {/* Live current time (HH:mm:ss) */}
-            <div style={styles.currentTime} id="header-current-time">{time}</div>
+            {/* Transliteration of the Hijri month (replaced live clock) */}
+            <div style={styles.hijriTranslit}>{hijriTranslitMonth}</div>
           </div>
         </div>
 
@@ -224,6 +233,13 @@ const styles = {
     color: "#065f46",
     marginBottom: 2,
   },
+  hijriTranslit: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: "#064e3b",
+    marginTop: 2,
+    fontStyle: "italic",
+  },
   currentTime: {
     fontSize: 13,
     fontWeight: 600,
@@ -344,24 +360,30 @@ if (typeof document !== "undefined") {
       .header-title { font-size: 18px !important; }
       .header-topbar { 
         padding: 8px 12px !important; 
-        grid-template-columns: 1fr auto !important;
+        /* FIX HERE: Change to auto 1fr auto to position elements correctly */
+        grid-template-columns: auto 1fr auto !important; 
         gap: 12px !important;
-        justify-items: center;
+        align-items: center; /* Ensure vertical alignment */
       }
       /* Hide logo on mobile for more space */
       .header-topbar .logoWrap { display: none !important; }
       /* Adjust brand text positioning */
       .header-topbar .brandSection { justify-self: start !important; }
+      /* Remove margin-left: auto from the button, as the grid column will position it */
+      .header-menu-btn { margin-left: 0 !important; } 
       .header-topbar .brandName { font-size: 18px !important; }
       .header-topbar .brandTag { font-size: 12px !important; }
       /* Center date/time section with better spacing */
-      .header-topbar .centerSection { justify-self: center !important; }
+      .header-topbar .centerSection { 
+        justify-content: center !important; /* Keep content centered within its 1fr column */
+        justify-self: stretch !important; /* Stretch to fill the 1fr column */
+      }
       .header-topbar .islamicDateCenter { font-size: 14px !important; }
       .header-topbar .hijriNumeric { font-size: 14px !important; margin-bottom: 2px !important; }
       .header-topbar .currentTime { font-size: 12px !important; margin-top: 2px !important; }
       /* Hide the right-side links, show hamburger */
       .header-meta { display: none !important; }
-      .header-menu-btn { display: inline-flex !important; margin-left: auto; }
+      .header-menu-btn { display: inline-flex !important; } /* Re-enable and align right */
       /* Hero section with better spacing */
       .header-hero { padding: 6px 12px !important; }
       .header-hero-inner h1 { margin-top: 2px !important; }
@@ -375,6 +397,7 @@ if (typeof document !== "undefined") {
 
   // Inject mobile menu panel styles and behavior via CSS classes
   const menuStyles = document.createElement('style')
+  // ... (Menu styles content is the same)
   menuStyles.textContent = `
     .header-menu-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.25); z-index: 40; }
     .header-menu-panel { z-index: 41; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); width: min(92vw, 320px); overflow: hidden; }
@@ -400,5 +423,4 @@ if (typeof document !== "undefined") {
 if (typeof document !== 'undefined') {
   // Observe menu state by polling a data-attribute that we toggle on the button
 }
-
-
+// ...existing code...

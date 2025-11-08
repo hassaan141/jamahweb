@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from "react"
 import { useParams, Link } from "react-router-dom"
 import { fetchDailyPrayerTimes, fetchOrganizationById, fetchMasjids } from "../services/supabase/api"
 import PrayerTimes from "../components/PrayerTimes"
-import DateBar from "../components/DateBar"
+// import DateBar from "../components/DateBar"
 import UpcomingPrayer from "../components/UpcomingPrayer"
 import DateToggle from "../components/DateToggle"
 import Header from "../components/Header"
@@ -128,7 +128,7 @@ export default function Masjid() {
         />
 
         <main style={styles.main}>
-          <DateBar />
+          {/* <DateBar /> */}
           {/* Desktop layout: upcoming + toggle side by side */}
           <div style={layoutStyles.upRow}>
             <div style={layoutStyles.toggleWrap}>

@@ -35,29 +35,30 @@ const styles = {
   container: {
     maxWidth: 800,
     margin: "0 auto",
-    padding: "40px 16px 24px",
+    /* reduced padding to make footer less tall */
+    padding: "20px 12px 12px",
   },
   content: {
     display: "flex",
     flexDirection: "row",
     justifyContent: "center",
-    gap: 48,
-    marginBottom: 32,
+    gap: 28,
+    marginBottom: 16,
     flexWrap: "wrap",
   },
   section: {
     textAlign: "center",
   },
   heading: {
-    fontSize: 14,
-    fontWeight: 600,
+    fontSize: 13,
+    fontWeight: 700,
     color: "#059669",
-    marginBottom: 12,
+    marginBottom: 8,
     letterSpacing: "0.02em",
     textTransform: "uppercase",
   },
   link: {
-    fontSize: 15,
+    fontSize: 14,
     color: "#374151",
     textDecoration: "none",
     transition: "color 0.2s ease",
@@ -70,11 +71,12 @@ const styles = {
   },
   copyright: {
     textAlign: "center",
-    paddingTop: 24,
+    /* tighter top padding so footer doesn't take too much vertical space */
+    paddingTop: 12,
     borderTop: "1px solid #f3f4f6",
   },
   copyrightText: {
-    fontSize: 13,
+    fontSize: 12,
     color: "#9ca3af",
     margin: 0,
   },
@@ -85,6 +87,14 @@ if (typeof document !== "undefined") {
   styleSheet.textContent = `
     footer a:hover {
       color: #059669 !important;
+    }
+    /* Responsive tweaks: make footer more compact on small screens */
+    @media (max-width: 640px) {
+      footer { padding-bottom: 8px; }
+      footer .container { padding: 14px 12px !important; }
+      footer h3 { margin-bottom: 6px !important; }
+      footer a { font-size: 14px !important; }
+      footer p { font-size: 12px !important; }
     }
   `
   if (!document.head.querySelector("style[data-footer-hover]")) {
