@@ -33,10 +33,7 @@ export default function Masjid() {
   }
 
   // Helper to produce YYYY-MM-DD (local)
-  function toYMD(date) {
-    const d = (date instanceof Date) ? date : new Date(date)
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
-  }
+  // toYMD removed (unused)
 
   const today = new Date()
   const tomorrow = new Date(Date.now() + 24*60*60*1000)

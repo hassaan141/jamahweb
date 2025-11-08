@@ -110,7 +110,7 @@ export default function Home() {
       .toLowerCase()
       .trim()
       .replace(/\s+/g, '-') // spaces to dashes
-      .replace(/[^a-z0-9\-]/g, '') // remove invalid chars
+      .replace(/[^a-z0-9-]/g, '') // remove invalid chars
       .replace(/-+/g, '-')
   }
 

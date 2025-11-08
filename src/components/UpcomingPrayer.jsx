@@ -68,7 +68,7 @@ export default function UpcomingPrayer({ prayerTimes, baseDate, align = 'center'
       if (m && m.isValid()) moments[name] = { name, at: m, raw }
     }
 
-    // Special case: after Isha and before ~4am, target Tomorrow Fajr
+  // Special case: after Isha and before ~4am, target Tomorrow Fajr
     const isha = moments.Isha?.at
     const fajr = moments.Fajr?.at
     const tomorrow4am = now.clone().startOf('day').add(1, 'day').hour(4).minute(0).second(0)
@@ -78,7 +78,6 @@ export default function UpcomingPrayer({ prayerTimes, baseDate, align = 'center'
         name: 'Fajr',
         at,
         raw: moments.Fajr.raw,
-        diffMs: at.diff(now),
         isTomorrow: true,
       }
     }
@@ -87,30 +86,18 @@ export default function UpcomingPrayer({ prayerTimes, baseDate, align = 'center'
     for (const name of ORDER) {
       const entry = moments[name]
       if (entry && entry.at.isAfter(now)) {
-        return {
-          name: entry.name,
-          at: entry.at,
-          raw: entry.raw,
-          diffMs: entry.at.diff(now),
-          isTomorrow: false,
-        }
+        return { name: entry.name, at: entry.at, raw: entry.raw, isTomorrow: false }
       }
     }
 
     // If none left today, it's Tomorrow Fajr
     if (fajr) {
       const at = fajr.clone().add(1, 'day')
-      return {
-        name: 'Fajr',
-        at,
-        raw: moments.Fajr.raw,
-        diffMs: at.diff(now),
-        isTomorrow: true,
-      }
+      return { name: 'Fajr', at, raw: moments.Fajr.raw, isTomorrow: true }
     }
 
     return null
-  }, [prayerTimes, tick, baseDate])
+  }, [prayerTimes, baseDate])
 
   function formatCountdown(diffMs) {
     if (!diffMs || diffMs <= 0) return '00h 00m 00s'
@@ -123,6 +110,7 @@ export default function UpcomingPrayer({ prayerTimes, baseDate, align = 'center'
   }
 
   if (!next) return null
+  const diffMs = next.at.diff(moment())
 
   const cardStyle = {
     ...styles.upcomingCard,
@@ -133,7 +121,7 @@ export default function UpcomingPrayer({ prayerTimes, baseDate, align = 'center'
     <div style={cardStyle}>
       <div style={styles.upLeft}>
         <span style={styles.upLead}>Next prayer in</span>
-        <span style={styles.upCountdown}>{formatCountdown(next.diffMs)}</span>
+  <span style={styles.upCountdown}>{formatCountdown(diffMs)}</span>
       </div>
       <div style={styles.upRight}>
         <span style={styles.upName}>{next.name}</span>
