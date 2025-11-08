@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import moment from 'moment-hijri'
 
-export default function UpcomingPrayer({ prayerTimes }) {
+export default function UpcomingPrayer({ prayerTimes, baseDate, align = 'center' }) {
   const [tick, setTick] = useState(0) // tick every second for live countdown
 
   useEffect(() => {
@@ -57,7 +57,7 @@ export default function UpcomingPrayer({ prayerTimes }) {
 
     const ORDER = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha']
     const now = moment()
-    const today = now.clone()
+  const today = baseDate ? moment(baseDate) : now.clone()
 
     // Build today's moments per rule
     const moments = {}
@@ -110,7 +110,7 @@ export default function UpcomingPrayer({ prayerTimes }) {
     }
 
     return null
-  }, [prayerTimes, tick])
+  }, [prayerTimes, tick, baseDate])
 
   function formatCountdown(diffMs) {
     if (!diffMs || diffMs <= 0) return '00h 00m 00s'
@@ -124,8 +124,13 @@ export default function UpcomingPrayer({ prayerTimes }) {
 
   if (!next) return null
 
+  const cardStyle = {
+    ...styles.upcomingCard,
+    margin: align === 'center' ? '0 auto 12px' : '0 0 12px 0',
+  }
+
   return (
-    <div style={styles.upcomingCard}>
+    <div style={cardStyle}>
       <div style={styles.upLeft}>
         <span style={styles.upLead}>Next prayer in</span>
         <span style={styles.upCountdown}>{formatCountdown(next.diffMs)}</span>
@@ -134,7 +139,7 @@ export default function UpcomingPrayer({ prayerTimes }) {
         <span style={styles.upName}>{next.name}</span>
         <span style={styles.dot}>•</span>
         <span style={styles.upTime}>{next.at.format('h:mm A')}</span>
-        {next.isTomorrow ? <span style={styles.upTomorrow}>(tomorrow)</span> : null}
+  {/* Removed explicit (tomorrow) label per request */}
       </div>
     </div>
   )
@@ -142,36 +147,38 @@ export default function UpcomingPrayer({ prayerTimes }) {
 
 const styles = {
   upcomingCard: {
-    maxWidth: 400,
-    margin: '0 auto 12px',
-    padding: '12px 16px',
+    maxWidth: 460,
+    margin: '0 auto 10px',
+    padding: '10px 14px',
     borderRadius: 16,
     background: '#ecfdf5',
     border: '1px solid #a7f3d0',
-    display: 'flex',
-    justifyContent: 'space-between',
+    display: 'grid',
+    gridTemplateColumns: '1fr auto',
     alignItems: 'center',
+    columnGap: 12,
     boxShadow: '0 2px 8px rgba(5,150,105,0.06)',
   },
-  upLeft: { display: 'flex', alignItems: 'center', gap: 10 },
-  upLead: { fontSize: 16, fontWeight: 700, color: '#065f46', letterSpacing: '0.02em' },
+  upLeft: { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 },
+  upLead: { fontSize: 14, fontWeight: 700, color: '#065f46', letterSpacing: '0.01em' },
   upRight: {
     display: 'flex',
     alignItems: 'center',
-    gap: 14,
-    marginLeft: 'auto',
+    gap: 8,
+    flexWrap: 'nowrap',
+    whiteSpace: 'nowrap',
   },
-  upName: { fontSize: 16, fontWeight: 800, color: '#065f46' },
-  upTime: { fontSize: 16, fontWeight: 700, color: '#064e3b' },
+  upName: { fontSize: 15, fontWeight: 700, color: '#065f46' },
+  upTime: { fontSize: 15, fontWeight: 700, color: '#064e3b', display: 'inline-block', whiteSpace: 'nowrap' },
   upCountdown: {
     background: 'transparent',
     color: '#065f46',
     padding: 0,
     borderRadius: 0,
     fontWeight: 800,
-    fontSize: 18,
+    fontSize: 16,
     fontVariantNumeric: 'tabular-nums',
   },
-  dot: { color: '#059669', opacity: 0.8 },
-  upTomorrow: { fontSize: 13, color: '#065f46', opacity: 0.8 },
+  dot: { color: '#059669', opacity: 0.75 },
+  // upTomorrow removed (no longer displayed)
 }

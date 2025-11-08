@@ -126,7 +126,7 @@ export default function Home() {
   return (
     <div style={styles.pageWrapper}>
       <div style={styles.container}>
-        <Header title="Awqat" subtitle="Vancouver Prayer Times & Masjid Finder" titleColor="#059669" />
+  <Header title="Awqat" subtitle="Vancouver Prayer Times & Masjid Finder" titleColor="#059669" />
 
         <main style={styles.main}>
           <div style={styles.verseWrapper}>
@@ -196,13 +196,13 @@ const styles = {
   main: {
     maxWidth: 800,
     margin: "0 auto",
-    padding: "40px 16px 64px",
+    padding: "28px 14px 48px",
   },
   verseWrapper: {
-    padding: "8px 0 18px",
+    padding: "6px 0 12px",
     textAlign: "center",
     color: "#065f46",
-    marginBottom: 20,
+    marginBottom: 12,
   },
   verseText: {
     fontSize: 20,
@@ -210,21 +210,21 @@ const styles = {
     letterSpacing: "0.01em",
   },
   translationText: {
-    marginTop: 8,
+    marginTop: 6,
     fontSize: 15,
     color: "#374151",
     fontStyle: "italic",
   },
   verseMeta: {
-    marginTop: 6,
+    marginTop: 4,
     fontSize: 13,
     color: "#6b7280",
   },
   card: {
     background: "white",
     borderRadius: 16,
-    padding: "32px",
-    marginBottom: 32,
+    padding: "24px",
+    marginBottom: 20,
     boxShadow: "0 2px 12px rgba(0, 0, 0, 0.08)",
     border: "1px solid #f3f4f6",
   },
@@ -294,10 +294,10 @@ if (typeof document !== "undefined") {
     @media (max-width: 640px) {
       .header h1 { font-size: 28px !important; }
       .header p { font-size: 14px !important; }
-      main[style*="max-width: 800"] { padding: 24px 12px 40px !important; }
-      div[style*="padding: 32px"][style*="border-radius: 16px"] { padding: 20px !important; }
-      div[style*="font-weight: 700"][style*="letter-spacing: 0.01em"] { font-size: 18px !important; }
-      div[style*="font-style: italic"] { font-size: 14px !important; }
+      main[style*="max-width: 800"] { padding: 14px 10px 32px !important; }
+      div[style*="padding: 24px"][style*="border-radius: 16px"] { padding: 16px !important; margin-bottom: 14px !important; }
+      div[style*="font-weight: 700"][style*="letter-spacing: 0.01em"] { font-size: 17px !important; }
+      div[style*="font-style: italic"] { font-size: 13px !important; }
     }
   `
   if (!document.head.querySelector("style[data-home-animations]")) {

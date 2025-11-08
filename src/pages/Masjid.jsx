@@ -1,21 +1,25 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useParams, useLocation, Link } from "react-router-dom"
+import { useParams, Link } from "react-router-dom"
 import { fetchDailyPrayerTimes, fetchOrganizationById, fetchMasjids } from "../services/supabase/api"
 import PrayerTimes from "../components/PrayerTimes"
 import DateBar from "../components/DateBar"
 import UpcomingPrayer from "../components/UpcomingPrayer"
+import DateToggle from "../components/DateToggle"
 import Header from "../components/Header"
 import Footer from "../components/Footer"
 import DirectionsCard from "../components/DirectionsCard"
+import LinksCard from "../components/LinksCard"
 
 export default function Masjid() {
   const { slug } = useParams()
-  const location = useLocation()
   const [prayerTimes, setPrayerTimes] = useState(null)
+  const [dayChoice, setDayChoice] = useState('today') // 'today' | 'tomorrow'
   const [org, setOrg] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [orgId, setOrgId] = useState(null)
+  const [prayerLoading, setPrayerLoading] = useState(false)
   const [error, setError] = useState(null)
 
   // small slug -> id resolution helper
@@ -24,38 +28,70 @@ export default function Masjid() {
       .toLowerCase()
       .trim()
       .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9\-]/g, '')
+      .replace(/[^a-z0-9-]/g, '')
       .replace(/-+/g, '-')
   }
 
+  // Helper to produce YYYY-MM-DD (local)
+  function toYMD(date) {
+    const d = (date instanceof Date) ? date : new Date(date)
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+  }
+
+  const today = new Date()
+  const tomorrow = new Date(Date.now() + 24*60*60*1000)
+  const selectedDate = dayChoice === 'today' ? today : tomorrow
+
+  
+
+  // Initial load: resolve org by slug and fetch org details
   useEffect(() => {
+    let active = true
     ;(async () => {
       setLoading(true)
       try {
-        // Resolve organization by slug only (no id in URL)
         const { data: masjids, error: listError } = await fetchMasjids()
         if (listError) throw listError
         const found = (masjids || []).find((o) => slugify(o.name) === slug)
         if (!found) throw new Error('Masjid not found')
-        const orgId = found.id
-
-        const [ptRes, orgRes] = await Promise.all([fetchDailyPrayerTimes(orgId), fetchOrganizationById(orgId)])
-        if (process.env.NODE_ENV !== 'production') {
-          // eslint-disable-next-line no-console
-          console.log('[Masjid] resolved id =', orgId)
-        }
-        if (ptRes.error) throw ptRes.error
+        const id = found.id
+        const orgRes = await fetchOrganizationById(id)
         if (orgRes.error) throw orgRes.error
-        setPrayerTimes(ptRes.data)
+        if (!active) return
+        setOrgId(id)
         setOrg(orgRes.data)
       } catch (e) {
         console.error('[Masjid] error', e)
+        if (!active) return
         setError(e)
       } finally {
-        setLoading(false)
+        if (active) setLoading(false)
       }
     })()
+    return () => { active = false }
   }, [slug])
+
+  // Fetch prayer times whenever the selected day or org id changes
+  useEffect(() => {
+    if (!orgId) return
+    let active = true
+    ;(async () => {
+      setPrayerLoading(true)
+      try {
+        const ptRes = await fetchDailyPrayerTimes(orgId, selectedDate)
+        if (ptRes.error) throw ptRes.error
+        if (!active) return
+        setPrayerTimes(ptRes.data)
+      } catch (e) {
+        console.error('[Masjid] prayer fetch error', e)
+        if (!active) return
+        setPrayerTimes(null)
+      } finally {
+        if (active) setPrayerLoading(false)
+      }
+    })()
+    return () => { active = false }
+  }, [orgId, dayChoice])
 
   if (loading) {
     return (
@@ -95,9 +131,25 @@ export default function Masjid() {
 
         <main style={styles.main}>
           <DateBar />
-          {prayerTimes && <UpcomingPrayer prayerTimes={prayerTimes} />}
+          {/* Desktop layout: upcoming + toggle side by side */}
+          <div style={layoutStyles.upRow}>
+            <div style={layoutStyles.toggleWrap}>
+              <DateToggle value={dayChoice} onChange={setDayChoice} />
+            </div>
+            <div style={layoutStyles.upcomingWrap}>
+              {prayerLoading ? (
+                <div style={placeholderStyles.upcoming} aria-busy="true" aria-live="polite">Loading…</div>
+              ) : (
+                prayerTimes && <UpcomingPrayer prayerTimes={prayerTimes} baseDate={selectedDate} align="left" />
+              )}
+            </div>
+          </div>
           {prayerTimes ? (
-            <PrayerTimes prayerTimes={prayerTimes} />
+            prayerLoading ? (
+              <div style={placeholderStyles.table} aria-busy="true" aria-live="polite">Loading…</div>
+            ) : (
+              <PrayerTimes prayerTimes={prayerTimes} />
+            )
           ) : (
             <div style={styles.emptyCard}>
               <div style={styles.emptyTitle}>No prayer times available</div>
@@ -105,6 +157,7 @@ export default function Masjid() {
             </div>
           )}
           {org ? <DirectionsCard org={org} /> : null}
+          {org ? <LinksCard org={org} /> : null}
         </main>
       </div>
       <Footer />
@@ -118,9 +171,11 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     background: "#fafafa",
+    overflowX: "hidden",
   },
   container: {
     flex: 1,
+    overflowX: "hidden",
   },
   header: {
     background: "linear-gradient(135deg, #059669 0%, #047857 100%)",
@@ -167,7 +222,8 @@ const styles = {
   main: {
     maxWidth: 800,
     margin: "0 auto",
-    padding: "16px 16px 56px",
+    padding: "12px 12px 48px",
+    overflowX: "hidden",
   },
   loadingContainer: {
     display: "flex",
@@ -253,6 +309,49 @@ const styles = {
   },
 }
 
+// Layout styles for top row (upcoming + toggle)
+const layoutStyles = {
+  upRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 8,
+    alignItems: 'stretch',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  upcomingWrap: { display: 'flex', flex: '0 1 auto', alignItems: 'stretch' },
+  toggleWrap: { display: 'flex', alignItems: 'center', flex: '0 0 auto' },
+}
+
+// Inline placeholders while only the prayer area is loading
+const placeholderStyles = {
+  upcoming: {
+    maxWidth: 400,
+    padding: '12px 16px',
+    borderRadius: 16,
+    background: '#ecfdf5',
+    border: '1px solid #a7f3d0',
+    color: '#065f46',
+    fontWeight: 700,
+    minHeight: 44,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0 2px 8px rgba(5,150,105,0.06)'
+  },
+  table: {
+    background: 'white',
+    border: '1px solid #e5e7eb',
+    borderRadius: 16,
+    maxWidth: 600,
+    margin: '0 auto',
+    padding: '24px',
+    textAlign: 'center',
+    color: '#9ca3af',
+    boxShadow: '0 4px 16px rgba(0,0,0,0.06)'
+  }
+}
+
 if (typeof document !== "undefined") {
   const styleSheet = document.createElement("style")
   styleSheet.textContent = `
@@ -269,8 +368,11 @@ if (typeof document !== "undefined") {
     }
     @media (max-width: 640px) {
       .header h1 { font-size: 24px !important; }
-      main[style*="max-width: 800"] { padding: 24px 12px 40px !important; }
-      div[style*="padding: 48px 32px"][style*="text-align: center"] { padding: 28px 20px !important; }
+      main[style*="max-width: 800"] { padding: 16px 10px 32px !important; }
+      div[style*="padding: 48px 32px"][style*="text-align: center"] { padding: 24px 18px !important; }
+      /* Stack upcoming and toggle full width */
+      div[style*="flex-wrap: wrap"][style*="gap: 8px"] { flex-direction: column !important; }
+      div[style*="flex-wrap: wrap"][style*="gap: 8px"] > div { width: 100% !important; }
     }
   `
   if (!document.head.querySelector("style[data-masjid-styles]")) {

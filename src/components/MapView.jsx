@@ -148,7 +148,7 @@ if (typeof document !== 'undefined') {
   const responsive = document.createElement('style')
   responsive.textContent = `
     @media (max-width: 640px) {
-      .map-wrap { height: min(60vh, 420px) !important; border-radius: 12px !important; }
+      .map-wrap { height: min(52vh, 360px) !important; border-radius: 12px !important; }
     }
   `
   if (!document.head.querySelector('style[data-mapview-responsive]')) {

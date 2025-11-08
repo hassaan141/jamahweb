@@ -7,6 +7,18 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Global layout hygiene to avoid horizontal scrolling */
+html, body, #root {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Consistent sizing */
+*, *::before, *::after { box-sizing: border-box; }
+
+/* Media should not overflow their containers */
+img, table { max-width: 100%; }
+
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;

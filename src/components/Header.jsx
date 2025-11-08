@@ -1,7 +1,7 @@
 "use client"
 
 import { Link } from "react-router-dom"
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import moment from "moment-hijri"
 
 export default function Header({
@@ -14,6 +14,9 @@ export default function Header({
 }) {
   // current time state (updates every second)
   const [time, setTime] = useState(moment().format('HH:mm:ss'))
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuBtnRef = useRef(null)
+  const [menuStyle, setMenuStyle] = useState({})
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -21,6 +24,33 @@ export default function Header({
     }, 1000)
     return () => clearInterval(timer)
   }, [])
+
+  // Close menu on escape
+  useEffect(() => {
+    function onKey(e) { if (e.key === 'Escape') setMenuOpen(false) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  // Position the menu panel aligned to the hamburger button
+  useEffect(() => {
+    if (!menuOpen) return
+    function positionPanel() {
+      const btn = menuBtnRef.current
+      if (!btn) return
+      const rect = btn.getBoundingClientRect()
+      const top = Math.round(rect.bottom + 8)
+      const right = Math.round(window.innerWidth - rect.right + 12)
+      setMenuStyle({ position: 'fixed', top: `${top}px`, right: `${right}px` })
+    }
+    positionPanel()
+    window.addEventListener('resize', positionPanel)
+    window.addEventListener('scroll', positionPanel, { passive: true })
+    return () => {
+      window.removeEventListener('resize', positionPanel)
+      window.removeEventListener('scroll', positionPanel)
+    }
+  }, [menuOpen])
 
   // Hijri date pieces: numeric (7/5/1447) and Arabic month name
   const hijriNumeric = moment().format('iD/iM/iYYYY')
@@ -65,9 +95,44 @@ export default function Header({
             Funeral Aid Services
           </a>
         </div>
+
+        {/* Mobile menu button */}
+        <button
+          type="button"
+          aria-label="Open menu"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((v) => !v)}
+          style={styles.menuButton}
+          className="header-menu-btn"
+          ref={menuBtnRef}
+        >
+          <span style={styles.menuIcon} aria-hidden>☰</span>
+        </button>
       </div>
 
-      <div style={styles.hero}>
+      {menuOpen && (
+        <>
+          <div className="header-menu-overlay header-fade-in" onClick={() => setMenuOpen(false)} />
+          <div className="header-menu-panel header-menu-in" role="menu" aria-label="Menu" style={menuStyle}>
+            <a href="mailto:info@awqat.net" className="header-menu-item" onClick={() => setMenuOpen(false)}>
+              <span>✉</span>
+              <span>info@awqat.net</span>
+            </a>
+            <a
+              href="https://awqat.net/MFASInfo.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="header-menu-item"
+              onClick={() => setMenuOpen(false)}
+            >
+              <span>📄</span>
+              <span>Funeral Aid Services</span>
+            </a>
+          </div>
+        </>
+      )}
+
+      <div style={styles.hero} className="header-hero">
         <div style={styles.heroInner} className="header-hero-inner">
           {showBack && (
             <Link to={backTo} style={styles.backLink} className="header-back">
@@ -105,8 +170,8 @@ const styles = {
     gap: 12,
   },
   logoWrap: {
-    width: 68,
-    height: 68,
+    width: 64,
+    height: 64,
     background: "transparent",
     borderRadius: 8,
     display: "flex",
@@ -202,8 +267,21 @@ const styles = {
     boxShadow: "inset 0 1px 0 rgba(255,255,255,0.6)",
     whiteSpace: "nowrap",
   },
+  menuButton: {
+    display: 'none',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: '1px solid #a7f3d0',
+    background: '#ecfdf5',
+    color: '#065f46',
+    padding: '8px 10px',
+    borderRadius: 8,
+    fontWeight: 800,
+    cursor: 'pointer',
+  },
+  menuIcon: { fontSize: 16, lineHeight: 1 },
   hero: {
-    padding: "14px 16px",
+    padding: "12px 16px",
     textAlign: "center",
     background: "#f0fdf4",
     borderTop: "1px solid #e5e7eb",
@@ -238,15 +316,15 @@ const styles = {
     textAlign: "center",
   },
   title: {
-    margin: "4px 0 0",
-    fontSize: 24,
+    margin: "2px 0 0",
+    fontSize: 22,
     fontWeight: 800,
     letterSpacing: "-0.01em",
     color: "#111827",
   },
   subtitle: {
-    margin: "6px 0 0",
-    fontSize: 15,
+    margin: "4px 0 0",
+    fontSize: 14,
     fontWeight: 500,
     color: "#6b7280",
   },
@@ -263,16 +341,48 @@ if (typeof document !== "undefined") {
       .header-back { position: static !important; margin-bottom: 8px !important; }
     }
     @media (max-width: 640px) {
-      .header-title { font-size: 20px !important; }
+      .header-title { font-size: 18px !important; }
       .header-topbar { padding: 8px 12px !important; }
-      .header-logo { width: 48px !important; height: 48px !important; }
-      .meta-badge { display: none !important; }
+      .header-logo { width: 40px !important; height: 40px !important; }
+      /* Hide the right-side links, show hamburger */
+      .header-meta { display: none !important; }
+      .header-menu-btn { display: inline-flex !important; margin-left: auto; }
+      .header-hero { padding: 6px 12px !important; }
+      .header-hero-inner h1 { margin-top: 0 !important; }
+      .header-hero-inner p { margin-top: 2px !important; font-size: 13px !important; }
     }
   `
   if (!document.head.querySelector('style[data-header-styles]')) {
     styleEl.setAttribute('data-header-styles', 'true')
     document.head.appendChild(styleEl)
   }
+
+  // Inject mobile menu panel styles and behavior via CSS classes
+  const menuStyles = document.createElement('style')
+  menuStyles.textContent = `
+    .header-menu-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.25); z-index: 40; }
+    .header-menu-panel { z-index: 41; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); width: min(92vw, 320px); overflow: hidden; }
+    .header-menu-item { display: flex; align-items: center; gap: 8px; padding: 12px 14px; color: #065f46; text-decoration: none; font-weight: 700; }
+    .header-menu-item + .header-menu-item { border-top: 1px solid #f3f4f6; }
+    .header-menu-item:hover { background: #ecfdf5; }
+    @media (min-width: 641px) { .header-menu-btn { display: none !important; } }
+
+    /* Animations */
+    @keyframes headerMenuIn { from { opacity: 0; transform: translateY(-6px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    @keyframes headerFadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .header-menu-in { animation: headerMenuIn 160ms ease-out; transform-origin: top right; }
+    .header-fade-in { animation: headerFadeIn 120ms ease-out; }
+  `
+  if (!document.head.querySelector('style[data-header-menu-styles]')) {
+    menuStyles.setAttribute('data-header-menu-styles', 'true')
+    document.head.appendChild(menuStyles)
+  }
+}
+
+// Render mobile menu via a lightweight portal approach
+// Note: Using simple DOM APIs to avoid adding dependencies
+if (typeof document !== 'undefined') {
+  // Observe menu state by polling a data-attribute that we toggle on the button
 }
 
 

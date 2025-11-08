@@ -25,22 +25,21 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     maxWidth: 600,
-    margin: '0 auto 12px',
-    padding: '8px 16px',
-    gap: 4,
+    margin: '0 auto 8px',
+    padding: '6px 14px',
+    gap: 2,
     textAlign: 'center',
   },
-  gregorianDate: { fontSize: 15, fontWeight: 700, color: '#374151' },
-  hijriDate: { fontSize: 14, fontWeight: 800, color: '#065f46' },
-  hijriTranslit: { fontWeight: 700, marginLeft: 6, color: '#065f46', opacity: 0.9 },
+  gregorianDate: { fontSize: 14, fontWeight: 700, color: '#374151' },
+  hijriDate: { fontSize: 13, fontWeight: 800, color: '#065f46' },
+  hijriTranslit: { fontWeight: 700, marginLeft: 4, color: '#065f46', opacity: 0.85, fontSize: 12 },
 }
 
 if (typeof document !== 'undefined') {
   const responsive = document.createElement('style')
   responsive.textContent = `
     @media (max-width: 640px) {
-      /* already stacked; just ensure spacing */
-      div[style*="flex-direction: column"][style*="max-width: 600"] { gap: 6px !important; }
+      div[style*="flex-direction: column"][style*="max-width: 600"] { gap: 4px !important; padding: 4px 10px !important; margin-bottom: 6px !important; }
     }
   `
   if (!document.head.querySelector('style[data-datebar-responsive]')) {
