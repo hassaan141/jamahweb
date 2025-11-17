@@ -70,7 +70,7 @@ export default function Masjid() {
     return () => { active = false }
   }, [slug])
 
-  // Fetch prayer times whenever the selected day or org id changes
+  // Fetch prayer times for selected day
   useEffect(() => {
     if (!orgId) return
     let active = true
@@ -101,6 +101,9 @@ export default function Masjid() {
     })()
     return () => { active = false }
   }, [orgId, selectedDate, dayChoice])
+
+  // Fetch prayer times for tomorrow (for diff)
+  // Removed unused setPrayerTimesTomorrow and related useEffect
 
   if (loading) {
     return (

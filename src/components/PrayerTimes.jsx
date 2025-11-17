@@ -36,6 +36,9 @@ export default function PrayerTimes({ prayerTimes, comparePrayerTimes = null, hi
     return m.format('h:mm A')
   }
 
+  // Accept changedKeys prop for minimal change
+  const changedKeys = prayerTimes.changedKeys || [];
+
   const prayerKeys = [
     { key: "fajr", name: "Fajr", azanKey: "fajr_azan", iqamahKey: "fajr_iqamah" },
     { key: "sunrise", name: "Sunrise", azanKey: "sunrise", iqamahKey: null, showIqamah: false },
@@ -43,73 +46,64 @@ export default function PrayerTimes({ prayerTimes, comparePrayerTimes = null, hi
     { key: "asr", name: "Asr", azanKey: "asr_azan", iqamahKey: "asr_iqamah" },
     { key: "maghrib", name: "Maghrib", azanKey: "maghrib_azan", iqamahKey: "maghrib_iqamah" },
     { key: "isha", name: "Isha", azanKey: "isha_azan", iqamahKey: "isha_iqamah" },
-    { key: "jummah", name: "Jummah", jummahKeys: ["jumah_time_1", "jumah_time_2", "jumah_time_3"] },
-  ]
+  ];
 
-  const normalizeRaw = (v) => (v == null ? '-' : String(v))
-
-  const prayers = prayerKeys.flatMap(({ name, azanKey, iqamahKey, showIqamah = true, jummahKeys }) => {
-    if (jummahKeys && Array.isArray(jummahKeys)) {
-      const rawTimes = jummahKeys.map((jk) => {
-        const alt = jk.includes('jumah') ? jk.replace('jumah', 'jummah') : jk.replace('jummah', 'jumah')
-        return (prayerTimes && (prayerTimes[jk] ?? prayerTimes[alt])) ?? null
-      })
-
-      const compRawTimes = comparePrayerTimes
-        ? jummahKeys.map((jk) => {
-            const alt = jk.includes('jumah') ? jk.replace('jumah', 'jummah') : jk.replace('jummah', 'jumah')
-            return (comparePrayerTimes && (comparePrayerTimes[jk] ?? comparePrayerTimes[alt])) ?? null
-          })
-        : null
-
-      const times = rawTimes.map((v) => (v && v !== '-' ? formatTime(v, 'Jummah') : null)).filter(Boolean)
-
-      // determine if any raw times changed (only mark changed when highlightChanges is true)
-      let changed = false
-      if (highlightChanges && compRawTimes) {
-        for (let i = 0; i < Math.max(rawTimes.length, compRawTimes.length); i++) {
-          if (normalizeRaw(rawTimes[i]) !== normalizeRaw(compRawTimes[i])) {
-            changed = true
-            break
-          }
-        }
-      }
-
-      return [{
-        type: 'jummah',
-        name,
-        times,
-        changed,
-      }]
-    }
-
-    const azanRaw = (prayerTimes && azanKey ? prayerTimes[azanKey] : null) ?? null
-    const iqamahRaw = (prayerTimes && iqamahKey ? prayerTimes[iqamahKey] : null) ?? null
-
-    const azan = azanRaw
-    const iqamah = showIqamah ? iqamahRaw : null
-
-    if (azan && azan !== '-' && (!showIqamah || (iqamah && iqamah !== '-'))) {
-      // compare with alternate day's raw values
-      let changed = false
+  let prayers = prayerKeys
+    .map(({ key, name, azanKey, iqamahKey, showIqamah = true }) => {
+      const azan = prayerTimes[azanKey];
+      const iqamah = showIqamah ? prayerTimes[iqamahKey] : null;
+      let changed = false;
       if (highlightChanges && comparePrayerTimes) {
-        const compAzanRaw = azanKey ? (comparePrayerTimes[azanKey] ?? null) : null
-        const compIqamahRaw = iqamahKey ? (comparePrayerTimes[iqamahKey] ?? null) : null
-        if (normalizeRaw(azanRaw) !== normalizeRaw(compAzanRaw)) changed = true
-        if (showIqamah && normalizeRaw(iqamahRaw) !== normalizeRaw(compIqamahRaw)) changed = true
+        const compAzan = comparePrayerTimes[azanKey];
+        const compIqamah = showIqamah ? comparePrayerTimes[iqamahKey] : null;
+        if (azan !== compAzan || (showIqamah && iqamah !== compIqamah)) {
+          changed = true;
+        }
+      } else {
+        changed = changedKeys.includes(key);
       }
+      if (azan && azan !== "-" && (!showIqamah || (iqamah && iqamah !== "-"))) {
+        return {
+          key,
+          name,
+          adhan: azan,
+          iqamah: showIqamah ? iqamah : "-",
+          changed,
+        };
+      }
+      return null;
+    })
+    .filter(Boolean);
 
-      return [{
-        type: 'normal',
-        name,
-        adhan: formatTime(azanRaw, name),
-        iqamah: showIqamah ? formatTime(iqamahRaw, name) : '-',
-        changed,
-      }]
-    }
+  // Insert zawal after sunrise if present
+  if (prayerTimes.zawal && prayerTimes.zawal !== "-") {
+    const sunriseIdx = prayers.findIndex(p => p.key === "sunrise");
+    prayers.splice(sunriseIdx + 1, 0, {
+      key: "zawal",
+      name: "Zawal",
+      adhan: prayerTimes.zawal,
+      iqamah: "-",
+      changed: false,
+    });
+  }
 
-    return []
-  })
+  // Insert jummah rows if present
+  const jummahKeys = ["jumah_time_1", "jumah_time_2", "jumah_time_3"];
+  const jummahLabels = ["Jummah 1", "Jummah 2", "Jummah 3"];
+  const jummahTimes = jummahKeys.map(jk => prayerTimes[jk]).filter(v => v && v !== "-");
+  if (jummahTimes.length > 0) {
+    // Format times
+    const formatted = jummahTimes.map(t => formatTime(t, "Jummah"));
+    prayers.push({
+      key: "jummah",
+      name: "Jummah",
+      adhan: formatted[0] || "-",
+      iqamah: formatted[1] || "-",
+      extra: formatted.slice(2), // for Jummah 3
+      labels: jummahLabels.slice(0, formatted.length),
+      changed: changedKeys.includes("jummah"),
+    });
+  }
 
   return (
     <div style={styles.card}>
@@ -126,53 +120,29 @@ export default function PrayerTimes({ prayerTimes, comparePrayerTimes = null, hi
               </tr>
             </thead>
             <tbody>
-              {prayers.map((prayer, idx) => {
-                if (prayer.type === "jummah") {
-                  // Place jummah times into Adhan/Iqamah columns per rules:
-                  // 1 time -> Adhan
-                  // 2 times -> Adhan, Iqamah
-                  // 3+ times -> Adhan, Iqamah (second/third joined with ' / ')
-                  const t = prayer.times || []
-                  let adhanVal = "-"
-                  let iqamahVal = "-"
-
-                  if (t.length === 1) {
-                    adhanVal = t[0]
-                  } else if (t.length === 2) {
-                    adhanVal = t[0]
-                    iqamahVal = t[1]
-                  } else if (t.length >= 3) {
-                    adhanVal = t[0]
-                    iqamahVal = `${t[1]} / ${t[2]}`
-                  }
-
-                  return (
-                    <tr
-                      key={idx}
-                      style={{ ...styles.row, ...(prayer.changed ? styles.changedRow : {}) }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = '#f9fafb' }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-                    >
-                      <td style={styles.prayerName}>{prayer.name}</td>
-                      <td style={styles.time}>{adhanVal}</td>
-                      <td style={styles.time}>{iqamahVal}</td>
-                    </tr>
-                  )
-                }
-
-                return (
-                  <tr
-                    key={idx}
-                    style={{ ...styles.row, ...(prayer.changed ? styles.changedRow : {}) }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = '#f9fafb' }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-                  >
+              {prayers.map((prayer, idx) => (
+                prayer.key === "jummah" ? (
+                  <tr key={idx} style={prayer.changed ? { ...styles.row, ...styles.rowChanged } : styles.row}>
+                    <td style={styles.prayerName}>{prayer.name}</td>
+                    <td style={styles.time}>
+                      {prayer.labels[0] && <div style={{fontSize:12, color:'#059669', marginBottom:2}}>{prayer.labels[0]}</div>}
+                      {prayer.adhan}
+                      {prayer.labels[2] && <div style={{fontSize:12, color:'#059669', marginTop:4}}>{prayer.labels[2]}</div>}
+                      {prayer.extra && prayer.extra[0] && <div>{prayer.extra[0]}</div>}
+                    </td>
+                    <td style={styles.time}>
+                      {prayer.labels[1] && <div style={{fontSize:12, color:'#059669', marginBottom:2}}>{prayer.labels[1]}</div>}
+                      {prayer.iqamah}
+                    </td>
+                  </tr>
+                ) : (
+                  <tr key={idx} style={prayer.changed ? { ...styles.row, ...styles.rowChanged } : styles.row}>
                     <td style={styles.prayerName}>{prayer.name}</td>
                     <td style={styles.time}>{String(prayer.adhan)}</td>
                     <td style={styles.time}>{String(prayer.iqamah)}</td>
                   </tr>
                 )
-              })}
+              ))}
             </tbody>
           </table>
         </div>
@@ -225,6 +195,10 @@ const styles = {
     borderBottom: "1px solid #f3f4f6",
     transition: "background 0.2s ease",
     cursor: "default",
+    background: "transparent",
+  },
+  rowChanged: {
+    background: "#d1fae5",
   },
   prayerName: {
     padding: "18px 16px",
