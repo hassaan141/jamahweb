@@ -18,13 +18,8 @@ export default function PrayerTimes({ prayerTimes, comparePrayerTimes = null, hi
     const parsed = parseHHMM(timeStr)
     if (!parsed) return null
     let { h, m } = parsed
-    // Force PM for afternoon/evening prayers and Jummah
-    if (['Dhuhr', 'Asr', 'Maghrib', 'Isha', 'Jummah'].includes(prayerName)) {
-      if (h < 12) h += 12
-    } else if (prayerName === 'Fajr' || prayerName === 'Sunrise') {
-      // Fajr and Sunrise are AM; treat 12 as midnight
-      if (h === 12) h = 0
-    }
+    // Server provides times in 24-hour format (HH:mm[:ss]).
+    // Use the parsed hour/minute directly and format to 12-hour for display.
     const t = moment()
     t.hour(h).minute(m).second(0).millisecond(0)
     return t
@@ -66,8 +61,8 @@ export default function PrayerTimes({ prayerTimes, comparePrayerTimes = null, hi
         return {
           key,
           name,
-          adhan: azan,
-          iqamah: showIqamah ? iqamah : "-",
+          adhan: formatTime(azan, name),
+          iqamah: showIqamah ? formatTime(iqamah, name) : "-",
           changed,
         };
       }
@@ -81,7 +76,7 @@ export default function PrayerTimes({ prayerTimes, comparePrayerTimes = null, hi
     prayers.splice(sunriseIdx + 1, 0, {
       key: "zawal",
       name: "Zawal",
-      adhan: prayerTimes.zawal,
+      adhan: formatTime(prayerTimes.zawal, "Zawal"),
       iqamah: "-",
       changed: false,
     });

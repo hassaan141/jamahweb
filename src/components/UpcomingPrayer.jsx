@@ -34,20 +34,12 @@ export default function UpcomingPrayer({ prayerTimes, baseDate, align = 'center'
       return { h, m }
     }
 
-    // Helper: build a moment for today with AM/PM inference rules
+    // Helper: build a moment for today from 24-hour time
     function toMomentFor(prayerName, timeStr, base) {
       const parsed = parseHHMM(timeStr)
       if (!parsed) return null
-      const { m } = parsed
-      let { h } = parsed
-      // AM/PM inference
-      if (['Dhuhr', 'Asr', 'Maghrib', 'Isha'].includes(prayerName)) {
-        // Force PM for these prayers
-        if (h < 12) h += 12
-      } else if (prayerName === 'Fajr') {
-        // Fajr: 12:xx means midnight
-        if (h === 12) h = 0
-      }
+      const { h, m } = parsed
+      // Server provides times in 24-hour format, use directly
       const t = (base || moment()).clone()
       t.hour(h).minute(m).second(0).millisecond(0)
       return t
