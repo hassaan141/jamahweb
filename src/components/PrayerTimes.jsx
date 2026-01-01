@@ -18,8 +18,6 @@ export default function PrayerTimes({ prayerTimes, comparePrayerTimes = null, hi
     const parsed = parseHHMM(timeStr)
     if (!parsed) return null
     let { h, m } = parsed
-    // Server provides times in 24-hour format (HH:mm[:ss]).
-    // Use the parsed hour/minute directly and format to 12-hour for display.
     const t = moment()
     t.hour(h).minute(m).second(0).millisecond(0)
     return t
@@ -31,8 +29,7 @@ export default function PrayerTimes({ prayerTimes, comparePrayerTimes = null, hi
     return m.format('h:mm A')
   }
 
-  // Accept changedKeys prop for minimal change
-  const changedKeys = prayerTimes.changedKeys || [];
+  const changedKeys = prayerTimes.changedKeys || []
 
   const prayerKeys = [
     { key: "fajr", name: "Fajr", azanKey: "fajr_azan", iqamahKey: "fajr_iqamah" },
@@ -41,109 +38,121 @@ export default function PrayerTimes({ prayerTimes, comparePrayerTimes = null, hi
     { key: "asr", name: "Asr", azanKey: "asr_azan", iqamahKey: "asr_iqamah" },
     { key: "maghrib", name: "Maghrib", azanKey: "maghrib_azan", iqamahKey: "maghrib_iqamah" },
     { key: "isha", name: "Isha", azanKey: "isha_azan", iqamahKey: "isha_iqamah" },
-  ];
+  ]
 
   let prayers = prayerKeys
     .map(({ key, name, azanKey, iqamahKey, showIqamah = true }) => {
-      const azan = prayerTimes[azanKey];
-      const iqamah = showIqamah ? prayerTimes[iqamahKey] : null;
-      let changed = false;
+      const azan = prayerTimes[azanKey]
+      const iqamah = showIqamah ? prayerTimes[iqamahKey] : null
+      let changed = false
+
       if (highlightChanges && comparePrayerTimes) {
-        const compAzan = comparePrayerTimes[azanKey];
-        const compIqamah = showIqamah ? comparePrayerTimes[iqamahKey] : null;
+        const compAzan = comparePrayerTimes[azanKey]
+        const compIqamah = showIqamah ? comparePrayerTimes[iqamahKey] : null
         if (azan !== compAzan || (showIqamah && iqamah !== compIqamah)) {
-          changed = true;
+          changed = true
         }
       } else {
-        changed = changedKeys.includes(key);
+        changed = changedKeys.includes(key)
       }
+
       if (azan && azan !== "-" && (!showIqamah || (iqamah && iqamah !== "-"))) {
         return {
           key,
           name,
           adhan: formatTime(azan, name),
           iqamah: showIqamah ? formatTime(iqamah, name) : "-",
+          showIqamah,
           changed,
-        };
+        }
       }
-      return null;
+      return null
     })
-    .filter(Boolean);
+    .filter(Boolean)
 
   // Insert zawal after sunrise if present
   if (prayerTimes.zawal && prayerTimes.zawal !== "-") {
-    const sunriseIdx = prayers.findIndex(p => p.key === "sunrise");
+    const sunriseIdx = prayers.findIndex(p => p.key === "sunrise")
     prayers.splice(sunriseIdx + 1, 0, {
       key: "zawal",
       name: "Zawal",
       adhan: formatTime(prayerTimes.zawal, "Zawal"),
       iqamah: "-",
+      showIqamah: false,
       changed: false,
-    });
+    })
   }
 
   // Insert jummah rows if present
-  const jummahKeys = ["jumah_time_1", "jumah_time_2", "jumah_time_3"];
-  const jummahLabels = ["Jummah 1", "Jummah 2", "Jummah 3"];
-  const jummahTimes = jummahKeys.map(jk => prayerTimes[jk]).filter(v => v && v !== "-");
+  const jummahKeys = ["jumah_time_1", "jumah_time_2", "jumah_time_3"]
+  const jummahLabels = ["Jummah 1", "Jummah 2", "Jummah 3"]
+  const jummahTimes = jummahKeys.map(jk => prayerTimes[jk]).filter(v => v && v !== "-")
+
   if (jummahTimes.length > 0) {
-    // Format times
-    const formatted = jummahTimes.map(t => formatTime(t, "Jummah"));
+    const formatted = jummahTimes.map(t => formatTime(t, "Jummah"))
     prayers.push({
       key: "jummah",
       name: "Jummah",
-      adhan: formatted[0] || "-",
-      iqamah: formatted[1] || "-",
-      extra: formatted.slice(2), // for Jummah 3
+      times: formatted,
       labels: jummahLabels.slice(0, formatted.length),
       changed: changedKeys.includes("jummah"),
-    });
+    })
   }
 
   return (
     <div style={styles.card}>
-        <div style={styles.header}>
-          <span style={styles.headerText}>Prayer Times</span>
-        </div>
-        <div style={styles.tableContainer}>
-          <table style={styles.table}>
-            <thead>
-              <tr style={styles.headerRow}>
-                <th style={styles.th}>Salat</th>
-                <th style={styles.th}>Adhan</th>
-                <th style={styles.th}>Iqamah</th>
-              </tr>
-            </thead>
-            <tbody>
-              {prayers.map((prayer, idx) => (
-                prayer.key === "jummah" ? (
-                  <tr key={idx} style={prayer.changed ? { ...styles.row, ...styles.rowChanged } : styles.row}>
-                    <td style={styles.prayerName}>{prayer.name}</td>
-                    <td style={styles.time}>
-                      {prayer.labels[0] && <div style={{fontSize:12, color:'#059669', marginBottom:2}}>{prayer.labels[0]}</div>}
-                      {prayer.adhan}
-                      {prayer.labels[2] && <div style={{fontSize:12, color:'#059669', marginTop:4}}>{prayer.labels[2]}</div>}
-                      {prayer.extra && prayer.extra[0] && <div>{prayer.extra[0]}</div>}
+      <div style={styles.header}>
+        <span style={styles.headerText}>Prayer Times</span>
+      </div>
+      <div style={styles.tableContainer}>
+        <table style={styles.table}>
+          <thead>
+            <tr style={styles.headerRow}>
+              <th style={styles.th}>Salat</th>
+              <th style={styles.th}>Adhan</th>
+              <th style={styles.th}>Iqamah</th>
+            </tr>
+          </thead>
+          <tbody>
+            {prayers.map((prayer, idx) => (
+              prayer.key === "jummah" ? (
+                <tr key={idx} style={prayer.changed ? { ...styles.row, ...styles.rowChanged } : styles.row}>
+                  <td style={styles.prayerName}>{prayer.name}</td>
+                  <td colSpan={2} style={styles.time}>
+                    {prayer.times.map((t, i) => (
+                      <div key={i}>
+                        <span style={{ fontSize: 12, color: '#059669', marginRight: 6 }}>
+                          {prayer.labels[i]}:
+                        </span>
+                        {t}
+                      </div>
+                    ))}
+                  </td>
+                </tr>
+              ) : (
+                <tr key={idx} style={prayer.changed ? { ...styles.row, ...styles.rowChanged } : styles.row}>
+                  <td style={styles.prayerName}>{prayer.name}</td>
+
+                  {!prayer.showIqamah ? (
+                    <td colSpan={2} style={styles.time}>
+                      {String(prayer.adhan)}
                     </td>
-                    <td style={styles.time}>
-                      {prayer.labels[1] && <div style={{fontSize:12, color:'#059669', marginBottom:2}}>{prayer.labels[1]}</div>}
-                      {prayer.iqamah}
-                    </td>
-                  </tr>
-                ) : (
-                  <tr key={idx} style={prayer.changed ? { ...styles.row, ...styles.rowChanged } : styles.row}>
-                    <td style={styles.prayerName}>{prayer.name}</td>
-                    <td style={styles.time}>{String(prayer.adhan)}</td>
-                    <td style={styles.time}>{String(prayer.iqamah)}</td>
-                  </tr>
-                )
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  ) : (
+                    <>
+                      <td style={styles.time}>{String(prayer.adhan)}</td>
+                      <td style={styles.time}>{String(prayer.iqamah)}</td>
+                    </>
+                  )}
+                </tr>
+              )
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
+
 
 const styles = {
   card: {
