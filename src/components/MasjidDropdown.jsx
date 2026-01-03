@@ -1,6 +1,27 @@
 "use client"
 
+import { useMemo } from "react"
+
 export default function MasjidDropdown({ masjids = [], selectedMasjid, onSelect }) {
+  // Group masjids by city
+  const masjidsByCity = useMemo(() => {
+    const grouped = {}
+    masjids.forEach((m) => {
+      const city = m.city || "Other"
+      if (!grouped[city]) {
+        grouped[city] = []
+      }
+      grouped[city].push(m)
+    })
+    // Sort cities alphabetically
+    return Object.keys(grouped)
+      .sort()
+      .map((city) => ({
+        city,
+        masjids: grouped[city].sort((a, b) => a.name.localeCompare(b.name)),
+      }))
+  }, [masjids])
+
   return (
     <div style={styles.selectWrapper}>
       <label style={styles.label}>Select Masjid</label>
@@ -23,10 +44,14 @@ export default function MasjidDropdown({ masjids = [], selectedMasjid, onSelect 
           }}
         >
           <option value="">Choose a masjid...</option>
-          {masjids.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.name}
-            </option>
+          {masjidsByCity.map(({ city, masjids }) => (
+            <optgroup key={city} label={city}>
+              {masjids.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </select>
         <div style={styles.icon}>

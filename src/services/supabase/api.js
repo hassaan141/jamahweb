@@ -4,9 +4,10 @@ import { supabase } from './client'
 export async function fetchMasjids() {
   const { data, error } = await supabase
     .from('organizations')
-    .select('id, name, address, city, latitude, longitude, type, is_active')
+    .select('id, name, address, city, province_state, latitude, longitude, type, is_active')
     .eq('is_active', true)
     .eq('type', 'masjid')
+    .or('province_state.eq.British Columbia,province_state.eq.BC')
     .order('name', { ascending: true })
   if (process.env.NODE_ENV !== 'production') {
     // eslint-disable-next-line no-console
