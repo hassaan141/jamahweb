@@ -21,6 +21,7 @@ export default function Masjid() {
   const [orgId, setOrgId] = useState(null)
   const [prayerLoading, setPrayerLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [lastFetchDate, setLastFetchDate] = useState(null)
 
   // small slug -> id resolution helper
   function slugify(str) {
@@ -41,7 +42,25 @@ export default function Masjid() {
     return dayChoice === 'today' ? today : tomorrow
   }, [dayChoice])
 
-  
+  // Auto-refresh prayer times after midnight
+  useEffect(() => {
+    const checkMidnight = setInterval(() => {
+      const now = new Date()
+      const currentDateStr = now.toISOString().split('T')[0]
+      
+      // If we're viewing 'today' and the date has changed since last fetch
+      if (dayChoice === 'today' && lastFetchDate && currentDateStr !== lastFetchDate) {
+        // Wait until 12:01 AM to ensure new data is available
+        if (now.getHours() === 0 && now.getMinutes() >= 1) {
+          setLastFetchDate(currentDateStr)
+          // Trigger re-fetch by updating selectedDate
+          window.location.reload()
+        }
+      }
+    }, 5000) // Check every 5 seconds
+
+    return () => clearInterval(checkMidnight)
+  }, [dayChoice, lastFetchDate])
 
   // Initial load: resolve org by slug and fetch org details
   useEffect(() => {
@@ -81,6 +100,7 @@ export default function Masjid() {
         if (ptRes.error) throw ptRes.error
         if (!active) return
         setPrayerTimes(ptRes.data)
+        setLastFetchDate(new Date().toISOString().split('T')[0])
 
         // fetch the alternate day (other day) so we can compare rows
         // if current is today, compare with tomorrow; if current is tomorrow, compare with today

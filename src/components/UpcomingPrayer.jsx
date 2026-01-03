@@ -56,7 +56,7 @@ export default function UpcomingPrayer({ prayerTimes, baseDate, align = 'center'
 
     const ORDER = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha']
     const now = moment()
-  const today = baseDate ? moment(baseDate) : now.clone()
+    const today = baseDate ? moment(baseDate) : now.clone()
 
     // Build today's moments per rule
     const moments = {}
@@ -67,17 +67,35 @@ export default function UpcomingPrayer({ prayerTimes, baseDate, align = 'center'
       if (m && m.isValid()) moments[name] = { name, at: m, raw }
     }
 
-  // Special case: after Isha and before ~4am, target Tomorrow Fajr
+    // Special case: after Isha and before Fajr next day (typically ~12:00 AM - 4:00 AM)
     const isha = moments.Isha?.at
     const fajr = moments.Fajr?.at
-    const tomorrow4am = now.clone().startOf('day').add(1, 'day').hour(4).minute(0).second(0)
-    if (isha && fajr && now.isAfter(isha) && now.isBefore(tomorrow4am)) {
-      const at = fajr.clone().add(1, 'day')
-      return {
-        name: 'Fajr',
-        at,
-        raw: moments.Fajr.raw,
-        isTomorrow: true,
+    
+    // If we're past midnight and before Fajr time, show "Next: Fajr" with tomorrow's date
+    if (isha && fajr && now.isAfter(isha)) {
+      // Check if current time is before Fajr (same day comparison)
+      const todayFajrTime = now.clone().hour(fajr.hour()).minute(fajr.minute()).second(0)
+      
+      // If we're after Isha but before Fajr time of day, target tomorrow's Fajr
+      if (now.isBefore(todayFajrTime) || now.hour() < 4) {
+        const at = fajr.clone()
+        // If baseDate is today and we're past midnight, Fajr is today (just a few hours away)
+        // If we're before midnight, Fajr is tomorrow
+        if (now.date() !== today.date()) {
+          // We're viewing tomorrow's times, keep as-is
+        } else if (now.hour() >= 0 && now.hour() < 4) {
+          // Past midnight but before Fajr - it's today's Fajr
+          at.date(now.date())
+        } else {
+          // Before midnight - target tomorrow's Fajr
+          at.add(1, 'day')
+        }
+        return {
+          name: 'Fajr',
+          at,
+          raw: moments.Fajr.raw,
+          isTomorrow: at.date() !== now.date(),
+        }
       }
     }
 

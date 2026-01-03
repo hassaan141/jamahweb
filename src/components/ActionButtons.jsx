@@ -73,6 +73,7 @@ export default function ActionButtons({ org }) {
       <div style={styles.header}>
         <div style={styles.title}>{name}</div>
         {address && <div style={styles.subtitle}>{address}</div>}
+        {org.description && <div style={styles.description}>{org.description}</div>}
       </div>
       
       <div style={styles.buttonRow} className="action-button-row">
@@ -167,6 +168,16 @@ const styles = {
     fontSize: 14, 
     color: '#6b7280',
     lineHeight: 1.4,
+  },
+  description: {
+    fontSize: 13,
+    color: '#4b5563',
+    lineHeight: 1.6,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTop: '1px solid #f3f4f6',
+    whiteSpace: 'pre-wrap',
+    textAlign: 'center',
   },
   buttonRow: {
     display: 'flex',
