@@ -1,5 +1,7 @@
 "use client"
 
+import { FaMapMarkerAlt, FaGlobe, FaHeart, FaFacebookF, FaInstagram, FaTwitter } from 'react-icons/fa'
+
 export default function ActionButtons({ org }) {
   if (!org) return null
 
@@ -17,9 +19,24 @@ export default function ActionButtons({ org }) {
     org.donate,
     org.donate_link,
   )
+  const facebookUrl = firstTruthy(
+    org.facebook_url,
+    org.facebook,
+  )
+  const instagramUrl = firstTruthy(
+    org.instagram_url,
+    org.instagram,
+  )
+  const twitterUrl = firstTruthy(
+    org.twitter_url,
+    org.twitter,
+  )
 
   const websiteHref = normalizeUrl(siteUrl)
   const donateHref = normalizeUrl(donateUrl)
+  const facebookHref = normalizeUrl(facebookUrl)
+  const instagramHref = normalizeUrl(instagramUrl)
+  const twitterHref = normalizeUrl(twitterUrl)
 
   // Map data
   const name = org.name || 'Destination'
@@ -31,10 +48,13 @@ export default function ActionButtons({ org }) {
 
   const hasWebsite = Boolean(websiteHref)
   const hasDonate = Boolean(donateHref)
+  const hasFacebook = Boolean(facebookHref)
+  const hasInstagram = Boolean(instagramHref)
+  const hasTwitter = Boolean(twitterHref)
   const hasMaps = Boolean(address || hasCoords)
 
   // If no actions available, don't render
-  if (!hasWebsite && !hasDonate && !hasMaps) return null
+  if (!hasWebsite && !hasDonate && !hasMaps && !hasFacebook && !hasInstagram && !hasTwitter) return null
 
   function openMaps() {
     try {
@@ -84,7 +104,7 @@ export default function ActionButtons({ org }) {
             style={{ ...styles.btn, ...styles.btnMaps }}
             className="action-btn action-btn-maps"
           >
-            <span style={styles.btnIcon}>📍</span>
+            <FaMapMarkerAlt style={styles.btnIcon} />
             <span>Directions</span>
           </button>
         )}
@@ -97,7 +117,7 @@ export default function ActionButtons({ org }) {
             style={{ ...styles.btn, ...styles.btnWebsite }}
             className="action-btn action-btn-website"
           >
-            <span style={styles.btnIcon}>🌐</span>
+            <FaGlobe style={styles.btnIcon} />
             <span>Website</span>
           </a>
         )}
@@ -110,8 +130,47 @@ export default function ActionButtons({ org }) {
             style={{ ...styles.btn, ...styles.btnDonate }}
             className="action-btn action-btn-donate"
           >
-            <span style={styles.btnIcon}>💚</span>
+            <FaHeart style={styles.btnIcon} />
             <span>Donate</span>
+          </a>
+        )}
+        
+        {hasFacebook && (
+          <a
+            href={facebookHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ ...styles.btn, ...styles.btnFacebook }}
+            className="action-btn action-btn-facebook"
+          >
+            <FaFacebookF style={styles.btnIcon} />
+            <span>Facebook</span>
+          </a>
+        )}
+        
+        {hasInstagram && (
+          <a
+            href={instagramHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ ...styles.btn, ...styles.btnInstagram }}
+            className="action-btn action-btn-instagram"
+          >
+            <FaInstagram style={styles.btnIcon} />
+            <span>Instagram</span>
+          </a>
+        )}
+        
+        {hasTwitter && (
+          <a
+            href={twitterHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ ...styles.btn, ...styles.btnTwitter }}
+            className="action-btn action-btn-twitter"
+          >
+            <FaTwitter style={styles.btnIcon} />
+            <span>Twitter</span>
           </a>
         )}
       </div>
@@ -216,6 +275,21 @@ const styles = {
     background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
     color: 'white',
   },
+  btnFacebook: {
+    background: '#1877f2',
+    color: 'white',
+    border: 'none',
+  },
+  btnInstagram: {
+    background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
+    color: 'white',
+    border: 'none',
+  },
+  btnTwitter: {
+    background: '#1DA1F2',
+    color: 'white',
+    border: 'none',
+  },
   btnIcon: {
     fontSize: 14,
     lineHeight: 1,
@@ -232,6 +306,9 @@ if (typeof document !== 'undefined') {
     .action-btn-maps:hover { filter: brightness(1.05); }
     .action-btn-website:hover { background: #d1fae5 !important; }
     .action-btn-donate:hover { filter: brightness(1.1); }
+    .action-btn-facebook:hover { filter: brightness(1.1); }
+    .action-btn-instagram:hover { filter: brightness(1.1); }
+    .action-btn-twitter:hover { filter: brightness(1.1); }
     
     @media (max-width: 640px) {
       .action-button-row { 

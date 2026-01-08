@@ -10,6 +10,7 @@ import DateToggle from "../components/DateToggle"
 import Header from "../components/Header"
 import Footer from "../components/Footer"
 import ActionButtons from "../components/ActionButtons"
+import Amenities from "../components/Amenities"
 
 export default function Masjid() {
   const { slug } = useParams()
@@ -193,6 +194,7 @@ export default function Masjid() {
             </div>
           )}
           {org ? <ActionButtons org={org} /> : null}
+          {org ? <Amenities org={org} /> : null}
         </main>
       </div>
       <Footer />
