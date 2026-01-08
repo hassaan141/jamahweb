@@ -1,6 +1,8 @@
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet"
 import "leaflet/dist/leaflet.css"
 import L from "leaflet"
+import { useEffect, useRef } from "react"
+import hardcodedData from "../data/data.json"
 
 // Default icon fix for Leaflet in bundlers
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png"
@@ -27,7 +29,10 @@ export default function MapView({ masjids = [], center, userLocation, highlightM
     latitude: typeof m.latitude === "string" ? Number.parseFloat(m.latitude) : m.latitude,
     longitude: typeof m.longitude === "string" ? Number.parseFloat(m.longitude) : m.longitude,
   }))
-  const valid = normalized.filter((m) => Number.isFinite(m.latitude) && Number.isFinite(m.longitude))
+
+  // Import hard-coded masjid entries from data.json
+  const combined = [...normalized, ...hardcodedData]
+  const valid = combined.filter((m) => Number.isFinite(m.latitude) && Number.isFinite(m.longitude))
 
   if (process.env.NODE_ENV !== "production") {
     const invalid = normalized.filter((m) => !Number.isFinite(m.latitude) || !Number.isFinite(m.longitude))
@@ -77,7 +82,7 @@ export default function MapView({ masjids = [], center, userLocation, highlightM
             .replace(/\s+/g, '-')
             .replace(/[^a-z0-9-]/g, '')
             .replace(/-+/g, '-')
-          const href = `/masjid/${slug}`
+          const href = m.externalUrl ? m.externalUrl : `/masjid/${slug}`
           return (
             <Marker key={m.id} position={[m.latitude, m.longitude]} icon={masjidIcon}>
               <Popup>
@@ -104,9 +109,20 @@ export default function MapView({ masjids = [], center, userLocation, highlightM
 
 function Recenter({ center }) {
   const map = useMap()
-  if (center && Array.isArray(center) && Number.isFinite(center[0]) && Number.isFinite(center[1])) {
-    map.setView(center)
-  }
+  const prev = useRef()
+
+  useEffect(() => {
+    if (!center || !Array.isArray(center)) return
+    const [lat, lng] = center
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return
+
+    const p = prev.current
+    if (!p || p[0] !== lat || p[1] !== lng) {
+      map.setView(center)
+      prev.current = [lat, lng]
+    }
+  }, [center, map])
+
   return null
 }
 

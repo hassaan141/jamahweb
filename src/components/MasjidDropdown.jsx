@@ -1,12 +1,16 @@
 "use client"
 
 import { useMemo } from "react"
+import hardcodedData from "../data/data.json"
 
 export default function MasjidDropdown({ masjids = [], selectedMasjid, onSelect }) {
   // Group masjids by city
   const masjidsByCity = useMemo(() => {
+    // Combine regular masjids with hardcoded data for city grouping
+    const allMasjids = [...masjids, ...hardcodedData]
+    
     const grouped = {}
-    masjids.forEach((m) => {
+    allMasjids.forEach((m) => {
       const city = m.city || "Other"
       if (!grouped[city]) {
         grouped[city] = []
@@ -22,6 +26,9 @@ export default function MasjidDropdown({ masjids = [], selectedMasjid, onSelect 
       }))
   }, [masjids])
 
+  // Create allMasjids for use in onChange handler
+  const allMasjids = [...masjids, ...hardcodedData]
+
   return (
     <div style={styles.selectWrapper}>
       <label style={styles.label}>Select Masjid</label>
@@ -31,7 +38,16 @@ export default function MasjidDropdown({ masjids = [], selectedMasjid, onSelect 
           value={selectedMasjid?.id || ""}
           onChange={(e) => {
             const id = e.target.value
-            const m = masjids.find((x) => String(x.id) === id)
+            // Find masjid in combined list (regular + hardcoded)
+            const m = allMasjids.find((x) => String(x.id) === id)
+            
+            // If it has an external URL, navigate to it
+            if (m && m.externalUrl) {
+              window.location.href = m.externalUrl
+              return
+            }
+            
+            // Otherwise, handle normal selection
             onSelect?.(m || null)
           }}
           onFocus={(e) => {
