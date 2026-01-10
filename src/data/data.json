@@ -1,14 +1,5 @@
 [
   {
-    "id": "masjid-bilal",
-    "name": "Masjid Bilal 7726 Edmonds Street",
-    "address": "7726 Edmonds Street",
-    "city": "Burnaby",
-    "latitude": 49.22419553269286,
-    "longitude": -122.94032872434005,
-    "externalUrl": "https://mosqueprayertimes.com/bilalmasjid913"
-  },
-  {
     "id": "fraserview-vancouver",
     "name": "FraserView Vancouver",
     "address": "FraserView",
@@ -18,24 +9,6 @@
     "externalUrl": "https://thefmcs.ca/prayer"
   },
   {
-    "id": "ajyal-mussalah",
-    "name": "Ajyal Mussalah Vancouver",
-    "address": "Ajyal Mussalah",
-    "city": "Vancouver",
-    "latitude": 49.28007312904959,
-    "longitude": -123.10857850442092,
-    "externalUrl": "https://www.mosqueprayertimes.com/Ajyal"
-  },
-  {
-    "id": "masjid-al-jamia",
-    "name": "Masjid Al Jamia Vancouver",
-    "address": "Masjid Al Jamia",
-    "city": "Vancouver",
-    "latitude": 49.26434141797467,
-    "longitude": -123.11899869124457,
-    "externalUrl": "https://www.mosqueprayertimes.com/aljamia"
-  },
-  {
     "id": "masjid-al-hidayah",
     "name": "Masjid Al Hidayah Port Coquitlam",
     "address": "Masjid Al Hidayah",
@@ -43,24 +16,6 @@
     "latitude": 49.26512448265055,
     "longitude": -122.78800997985032,
     "externalUrl": "https://theisbc.ca/main-prayer-times"
-  },
-  {
-    "id": "masjid-ar-rahman",
-    "name": "Masjid Ar-Rahman North Vancouver",
-    "address": "Masjid Ar-Rahman",
-    "city": "North Vancouver",
-    "latitude": 49.3223693404419,
-    "longitude": -123.11298842376205,
-    "externalUrl": "https://mosqueprayertimes.com/northvanmasjid"
-  },
-  {
-    "id": "west-end-musallah",
-    "name": "West End Musallah Vancouver",
-    "address": "West End Musallah",
-    "city": "Vancouver",
-    "latitude": 49.2919882273414,
-    "longitude": -123.13441507769016,
-    "externalUrl": "https://www.mosqueprayertimes.com/westend-musalla"
   },
   {
     "id": "granville-mussalah",
