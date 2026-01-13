@@ -1,17 +1,21 @@
 "use client"
 import { useEffect, useState, useMemo } from "react"
 import { useParams, Link } from "react-router-dom"
-import { fetchDailyPrayerTimes, fetchOrganizationById, fetchMasjids } from "../services/supabase/api"
+import { useMasjids, useOrganization, usePrayerTimes } from "../services/supabase/hooks"
 import PrayerTimesHorizontal from "../components/PrayerTimesHorizontal"
 import moment from "moment-hijri"
 
 export default function MasjidHorizontal() {
   const { slug } = useParams()
   const [currentTime, setCurrentTime] = useState(new Date())
-  const [prayerTimes, setPrayerTimes] = useState(null)
-  const [org, setOrg] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [orgId, setOrgId] = useState(null)
   const [, forceTick] = useState(0)
+
+  // Fetch all masjids (cached)
+  const { data: masjids = [] } = useMasjids()
+  
+  // Fetch organization details (cached)
+  const { data: org, isLoading: orgLoading } = useOrganization(orgId)
 
   // Clock timer
   useEffect(() => {
@@ -27,19 +31,19 @@ export default function MasjidHorizontal() {
 
   const selectedDate = useMemo(() => new Date(), [])
 
+  // Fetch prayer times (cached)
+  const { data: prayerTimes, isLoading: prayerLoading } = usePrayerTimes(orgId, selectedDate)
+
+  const loading = orgLoading || prayerLoading
+
+  // Resolve org by slug
   useEffect(() => {
-    ;(async () => {
-      const { data: masjids } = await fetchMasjids()
-      const found = masjids?.find((o) => String(o.name).toLowerCase().replace(/\s+/g, "-") === slug)
-      if (found) {
-        const orgRes = await fetchOrganizationById(found.id)
-        setOrg(orgRes.data)
-        const ptRes = await fetchDailyPrayerTimes(found.id, selectedDate)
-        setPrayerTimes(ptRes.data)
-      }
-      setLoading(false)
-    })()
-  }, [slug, selectedDate])
+    if (!masjids?.length || !slug) return
+    const found = masjids.find((o) => String(o.name).toLowerCase().replace(/\s+/g, "-") === slug)
+    if (found?.id) {
+      setOrgId(found.id)
+    }
+  }, [masjids, slug])
 
   const nextPrayer = useMemo(() => {
     if (!prayerTimes) return null
