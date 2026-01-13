@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { fetchMasjids } from "../services/supabase/api"
+import { useMasjids } from "../services/supabase/hooks"
 import MasjidDropdown from "../components/MasjidDropdown"
 import MapView from "../components/MapView"
 import Header from "../components/Header"
@@ -10,30 +10,16 @@ import Footer from "../components/Footer"
 
 export default function Home() {
   const navigate = useNavigate()
-  const [masjids, setMasjids] = useState([])
-  const [loading, setLoading] = useState(true)
+  const { data: masjids = [], isLoading: loading, error: fetchError } = useMasjids()
   const [userLocation, setUserLocation] = useState(null)
   const [mapCenter, setMapCenter] = useState({ lat: 49.2827, lng: -123.1207 })
   const [nearestMasjidId, setNearestMasjidId] = useState(null)
 
   useEffect(() => {
-    ;(async () => {
-      try {
-        const { data, error } = await fetchMasjids()
-        if (error) throw error
-        setMasjids(data)
-      } catch (e) {
-        console.error("Failed to load masjids:", e)
-      } finally {
-        setLoading(false)
-      }
-    })()
-  }, [])
-
-  useEffect(() => {
     if (typeof navigator !== "undefined" && navigator.geolocation) {
-      // Prefer continuous high-accuracy updates; avoid cached locations
-      const watchId = navigator.geolocation.watchPosition(
+      // Use single high-accuracy request instead of continuous watch
+      // to reduce battery drain and API calls
+      navigator.geolocation.getCurrentPosition(
         (pos) => {
           setUserLocation({
             lat: pos.coords.latitude,
@@ -41,23 +27,12 @@ export default function Home() {
             accuracy: pos.coords.accuracy,
           })
         },
-        () => {
-          // Fallback to single read if watch fails
-          navigator.geolocation.getCurrentPosition(
-            (pos) => {
-              setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy })
-            },
-            undefined,
-            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
-          )
+        (error) => {
+          console.warn("Geolocation failed:", error)
+          // Silently fail - app works without location
         },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }, // Cache for 1 minute
       )
-      return () => {
-        try {
-          navigator.geolocation.clearWatch(watchId)
-        } catch {}
-      }
     }
   }, [])
 
@@ -119,6 +94,15 @@ export default function Home() {
       <div style={styles.loadingContainer}>
         <div style={styles.spinner}></div>
         <div style={styles.loadingText}>Loading...</div>
+      </div>
+    )
+  }
+
+  // Show error state if fetch failed
+  if (fetchError) {
+    return (
+      <div style={styles.loadingContainer}>
+        <div style={styles.errorText}>Unable to load masjids. Please try again later.</div>
       </div>
     )
   }

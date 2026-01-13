@@ -2,9 +2,10 @@
 
 import { useEffect, useState, useMemo } from "react"
 import { useParams, Link } from "react-router-dom"
-import { fetchDailyPrayerTimes, fetchOrganizationById, fetchMasjids } from "../services/supabase/api"
+import moment from "moment-hijri"
+
+import { useMasjids, useOrganization, useMultiplePrayerTimes } from "../services/supabase/hooks"
 import PrayerTimes from "../components/PrayerTimes"
-// import DateBar from "../components/DateBar"
 import UpcomingPrayer from "../components/UpcomingPrayer"
 import DateToggle from "../components/DateToggle"
 import Header from "../components/Header"
@@ -14,117 +15,81 @@ import Amenities from "../components/Amenities"
 
 export default function Masjid() {
   const { slug } = useParams()
-  const [prayerTimes, setPrayerTimes] = useState(null)
-  const [comparePrayerTimes, setComparePrayerTimes] = useState(null)
-  const [dayChoice, setDayChoice] = useState('today') // 'today' | 'tomorrow'
-  const [org, setOrg] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [dayChoice, setDayChoice] = useState("today")
   const [orgId, setOrgId] = useState(null)
-  const [prayerLoading, setPrayerLoading] = useState(false)
-  const [error, setError] = useState(null)
-  const [lastFetchDate, setLastFetchDate] = useState(null)
 
-  // small slug -> id resolution helper
+  const { data: masjids = [], isLoading: masjidsLoading } = useMasjids()
+  const { data: org, isLoading: orgLoading, error: orgError } = useOrganization(orgId)
+
   function slugify(str) {
-    return String(str || '')
+    return String(str || "")
       .toLowerCase()
       .trim()
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9-]/g, '')
-      .replace(/-+/g, '-')
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "")
+      .replace(/-+/g, "-")
   }
-
-  // Helper to produce YYYY-MM-DD (local)
-  // toYMD removed (unused)
 
   const selectedDate = useMemo(() => {
     const today = new Date()
-    const tomorrow = new Date(Date.now() + 24*60*60*1000)
-    return dayChoice === 'today' ? today : tomorrow
+    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
+    return dayChoice === "today" ? today : tomorrow
   }, [dayChoice])
 
-  // Auto-refresh prayer times after midnight
+  const compareDate = useMemo(() => {
+    const alt = new Date(selectedDate)
+    alt.setDate(alt.getDate() + (dayChoice === "today" ? 1 : -1))
+    return alt
+  }, [selectedDate, dayChoice])
+
+  const prayerQueries = useMultiplePrayerTimes(orgId, [selectedDate, compareDate])
+  const [selectedPrayerQuery, comparePrayerQuery] = prayerQueries
+
+  const prayerTimes = selectedPrayerQuery?.data
+  const comparePrayerTimes = comparePrayerQuery?.data
+  const prayerLoading =
+    selectedPrayerQuery?.isLoading || comparePrayerQuery?.isLoading
+
   useEffect(() => {
-    const checkMidnight = setInterval(() => {
-      const now = new Date()
-      const currentDateStr = now.toISOString().split('T')[0]
-      
-      // If we're viewing 'today' and the date has changed since last fetch
-      if (dayChoice === 'today' && lastFetchDate && currentDateStr !== lastFetchDate) {
-        // Wait until 12:01 AM to ensure new data is available
-        if (now.getHours() === 0 && now.getMinutes() >= 1) {
-          setLastFetchDate(currentDateStr)
-          // Trigger re-fetch by updating selectedDate
-          window.location.reload()
-        }
-      }
-    }, 5000) // Check every 5 seconds
+    if (!masjids.length || !slug) return
+    const found = masjids.find((o) => slugify(o.name) === slug)
+    if (found?.id) setOrgId(found.id)
+  }, [masjids, slug])
 
-    return () => clearInterval(checkMidnight)
-  }, [dayChoice, lastFetchDate])
+  const loading = masjidsLoading || orgLoading
 
-  // Initial load: resolve org by slug and fetch org details
-  useEffect(() => {
-    let active = true
-    ;(async () => {
-      setLoading(true)
-      try {
-        const { data: masjids, error: listError } = await fetchMasjids()
-        if (listError) throw listError
-        const found = (masjids || []).find((o) => slugify(o.name) === slug)
-        if (!found) throw new Error('Masjid not found')
-        const id = found.id
-        const orgRes = await fetchOrganizationById(id)
-        if (orgRes.error) throw orgRes.error
-        if (!active) return
-        setOrgId(id)
-        setOrg(orgRes.data)
-      } catch (e) {
-        console.error('[Masjid] error', e)
-        if (!active) return
-        setError(e)
-      } finally {
-        if (active) setLoading(false)
-      }
-    })()
-    return () => { active = false }
-  }, [slug])
+  const prayers = useMemo(() => {
+    if (!prayerTimes) return null
 
-  // Fetch prayer times for selected day
-  useEffect(() => {
-    if (!orgId) return
-    let active = true
-    ;(async () => {
-      setPrayerLoading(true)
-      try {
-        const ptRes = await fetchDailyPrayerTimes(orgId, selectedDate)
-        if (ptRes.error) throw ptRes.error
-        if (!active) return
-        setPrayerTimes(ptRes.data)
-        setLastFetchDate(new Date().toISOString().split('T')[0])
+    const base = moment(selectedDate)
 
-        // fetch the alternate day (other day) so we can compare rows
-        // if current is today, compare with tomorrow; if current is tomorrow, compare with today
-        const alt = new Date(selectedDate)
-        const delta = dayChoice === 'today' ? 1 : -1
-        alt.setDate(alt.getDate() + delta)
-        const compareRes = await fetchDailyPrayerTimes(orgId, alt)
-        if (!active) return
-        setComparePrayerTimes(compareRes.error ? null : compareRes.data)
-      } catch (e) {
-        console.error('[Masjid] prayer fetch error', e)
-        if (!active) return
-        setPrayerTimes(null)
-        setComparePrayerTimes(null)
-      } finally {
-        if (active) setPrayerLoading(false)
-      }
-    })()
-    return () => { active = false }
-  }, [orgId, selectedDate, dayChoice])
+    const map = [
+      ["Fajr", "fajr_azan"],
+      ["Sunrise", "sunrise"],
+      ["Dhuhr", "dhuhr_azan"],
+      ["Asr", "asr_azan"],
+      ["Maghrib", "maghrib_azan"],
+      ["Isha", "isha_azan"],
+    ]
 
-  // Fetch prayer times for tomorrow (for diff)
-  // Removed unused setPrayerTimesTomorrow and related useEffect
+    return map
+      .map(([name, field]) => {
+        const raw = prayerTimes[field]
+        if (!raw) return null
+
+        const match = String(raw).match(/(\d{1,2}):(\d{2})/)
+        if (!match) return null
+
+        const at = base.clone()
+          .hour(Number(match[1]))
+          .minute(Number(match[2]))
+          .second(0)
+          .millisecond(0)
+
+        return { name, at }
+      })
+      .filter(Boolean)
+  }, [prayerTimes, selectedDate])
 
   if (loading) {
     return (
@@ -135,7 +100,7 @@ export default function Masjid() {
     )
   }
 
-  if (error) {
+  if (orgError || (!org && !orgLoading)) {
     return (
       <div style={styles.errorContainer}>
         <div style={styles.errorCard}>
@@ -152,39 +117,46 @@ export default function Masjid() {
   return (
     <div style={styles.pageWrapper}>
       <div style={styles.container}>
-        <Header 
-          title={org?.name || "Masjid"} 
+        <Header
+          title={org?.name || "Masjid"}
           subtitle={
-            org?.address 
-              ? `${org.address}, ${org.city || ''}${org.province_state ? `, ${org.province_state}` : ''}${org.country ? `, ${org.country}` : ''}`.replace(/^,+|,+$|,\s*,/g, ',').trim()
-              : org?.city || ""} 
-          showBack 
-          backTo="/" 
+            org?.address
+              ? `${org.address}, ${org.city || ""}${org.province_state ? `, ${org.province_state}` : ""}`
+              : org?.city || ""
+          }
+          showBack
+          backTo="/"
         />
 
         <main style={styles.main}>
-          {/* <DateBar /> */}
-          {/* Desktop layout: upcoming + toggle side by side */}
           <div style={layoutStyles.upRow}>
             <div style={layoutStyles.toggleWrap}>
               <DateToggle value={dayChoice} onChange={setDayChoice} />
             </div>
+
             <div style={layoutStyles.upcomingWrap}>
               {prayerLoading ? (
-                <div style={placeholderStyles.upcoming} aria-busy="true" aria-live="polite">Loading…</div>
+                <div style={placeholderStyles.upcoming}>Loading…</div>
               ) : (
-                prayerTimes && <UpcomingPrayer prayerTimes={prayerTimes} baseDate={selectedDate} align="left" />
+                prayers && (
+                  <UpcomingPrayer
+                    prayers={prayers}
+                    baseDate={selectedDate}
+                    align="left"
+                  />
+                )
               )}
             </div>
           </div>
+
           {prayerTimes ? (
             prayerLoading ? (
-              <div style={placeholderStyles.table} aria-busy="true" aria-live="polite">Loading…</div>
+              <div style={placeholderStyles.table}>Loading…</div>
             ) : (
               <PrayerTimes
                 prayerTimes={prayerTimes}
                 comparePrayerTimes={comparePrayerTimes}
-                highlightChanges={dayChoice === 'tomorrow'}
+                highlightChanges={dayChoice === "tomorrow"}
               />
             )
           ) : (
@@ -193,14 +165,17 @@ export default function Masjid() {
               <div style={styles.emptyText}>Please check back later</div>
             </div>
           )}
-          {org ? <ActionButtons org={org} /> : null}
-          {org ? <Amenities org={org} /> : null}
+
+          {org && <ActionButtons org={org} />}
+          {org && <Amenities org={org} />}
         </main>
       </div>
+
       <Footer />
     </div>
   )
 }
+
 
 const styles = {
   pageWrapper: {

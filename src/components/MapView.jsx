@@ -109,22 +109,22 @@ export default function MapView({ masjids = [], center, userLocation, highlightM
 
 function Recenter({ center }) {
   const map = useMap()
-  const prev = useRef()
+  const userMoved = useRef(false)
 
   useEffect(() => {
-    if (!center || !Array.isArray(center)) return
-    const [lat, lng] = center
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return
+    map.on('movestart', () => {
+      userMoved.current = true
+    })
+  }, [map])
 
-    const p = prev.current
-    if (!p || p[0] !== lat || p[1] !== lng) {
-      map.setView(center)
-      prev.current = [lat, lng]
-    }
+  useEffect(() => {
+    if (userMoved.current) return
+    map.setView(center)
   }, [center, map])
 
   return null
 }
+
 
 const styles = {
   container: {

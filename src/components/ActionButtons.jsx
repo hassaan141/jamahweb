@@ -1,6 +1,6 @@
 "use client"
 
-import { FaMapMarkerAlt, FaGlobe, FaHeart, FaFacebookF, FaInstagram, FaTwitter } from 'react-icons/fa'
+import { FaMapMarkerAlt, FaGlobe, FaHeart, FaFacebookF, FaInstagram, FaTwitter, FaYoutube, FaWhatsapp } from 'react-icons/fa'
 
 export default function ActionButtons({ org }) {
   if (!org) return null
@@ -31,12 +31,22 @@ export default function ActionButtons({ org }) {
     org.twitter_url,
     org.twitter,
   )
+  const youtubeUrl = firstTruthy(
+    org.youtube_url,
+    org.youtube,
+  )
+  const whatsappUrl = firstTruthy(
+    org.whatsapp_url,
+    org.whatsapp,
+  )
 
   const websiteHref = normalizeUrl(siteUrl)
   const donateHref = normalizeUrl(donateUrl)
   const facebookHref = normalizeUrl(facebookUrl)
   const instagramHref = normalizeUrl(instagramUrl)
   const twitterHref = normalizeUrl(twitterUrl)
+  const youtubeHref = normalizeUrl(youtubeUrl)
+  const whatsappHref = normalizeUrl(whatsappUrl)
 
   // Map data
   const name = org.name || 'Destination'
@@ -51,10 +61,12 @@ export default function ActionButtons({ org }) {
   const hasFacebook = Boolean(facebookHref)
   const hasInstagram = Boolean(instagramHref)
   const hasTwitter = Boolean(twitterHref)
+  const hasYoutube = Boolean(youtubeHref)
+  const hasWhatsapp = Boolean(whatsappHref)
   const hasMaps = Boolean(address || hasCoords)
 
   // If no actions available, don't render
-  if (!hasWebsite && !hasDonate && !hasMaps && !hasFacebook && !hasInstagram && !hasTwitter) return null
+  if (!hasWebsite && !hasDonate && !hasMaps && !hasFacebook && !hasInstagram && !hasTwitter && !hasYoutube && !hasWhatsapp) return null
 
   function openMaps() {
     try {
@@ -171,6 +183,32 @@ export default function ActionButtons({ org }) {
           >
             <FaTwitter style={styles.btnIcon} />
             <span>Twitter</span>
+          </a>
+        )}
+        
+        {hasYoutube && (
+          <a
+            href={youtubeHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ ...styles.btn, ...styles.btnYoutube }}
+            className="action-btn action-btn-youtube"
+          >
+            <FaYoutube style={styles.btnIcon} />
+            <span>YouTube</span>
+          </a>
+        )}
+        
+        {hasWhatsapp && (
+          <a
+            href={whatsappHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ ...styles.btn, ...styles.btnWhatsapp }}
+            className="action-btn action-btn-whatsapp"
+          >
+            <FaWhatsapp style={styles.btnIcon} />
+            <span>WhatsApp</span>
           </a>
         )}
       </div>
@@ -290,6 +328,16 @@ const styles = {
     color: 'white',
     border: 'none',
   },
+  btnYoutube: {
+    background: '#FF0000',
+    color: 'white',
+    border: 'none',
+  },
+  btnWhatsapp: {
+    background: '#25D366',
+    color: 'white',
+    border: 'none',
+  },
   btnIcon: {
     fontSize: 14,
     lineHeight: 1,
@@ -309,6 +357,8 @@ if (typeof document !== 'undefined') {
     .action-btn-facebook:hover { filter: brightness(1.1); }
     .action-btn-instagram:hover { filter: brightness(1.1); }
     .action-btn-twitter:hover { filter: brightness(1.1); }
+    .action-btn-youtube:hover { filter: brightness(1.1); }
+    .action-btn-whatsapp:hover { filter: brightness(1.1); }
     
     @media (max-width: 640px) {
       .action-button-row { 
