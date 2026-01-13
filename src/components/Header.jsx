@@ -93,7 +93,7 @@ export default function Header({
             <span style={styles.metaIcon}>✉</span> infoawqat@gmail.com
           </a>
           <a
-            href="https://awqat.net/MFASInfo.pdf"
+            href="/MFASInfo.pdf"
             target="_blank"
             rel="noopener noreferrer"
             style={styles.metaBadge}
@@ -128,7 +128,7 @@ export default function Header({
               <span>infoawqat@gmail.com</span>
             </a>
             <a
-              href="https://awqat.net/MFASInfo.pdf"
+              href="/MFASInfo.pdf"
               target="_blank"
               rel="noopener noreferrer"
               className="header-menu-item"
