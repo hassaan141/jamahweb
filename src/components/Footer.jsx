@@ -7,8 +7,8 @@ export default function Footer() {
         <div style={styles.content}>
           <div style={styles.section}>
             <h3 style={styles.heading}>Contact Us</h3>
-            <a href="mailto:info@awqat.net" style={styles.link}>
-              info@awqat.net
+            <a href="mailto:infoawqat@gmail.com" style={styles.link}>
+              infoawqat@gmail.com
             </a>
           </div>
           <div style={styles.section}>

@@ -89,8 +89,8 @@ export default function Header({
         </div>
 
         <div style={styles.metaSection} className="header-meta">
-          <a href="mailto:info@awqat.net" style={styles.metaLink}>
-            <span style={styles.metaIcon}>✉</span> info@awqat.net
+          <a href="mailto:infoawqat@gmail.com" style={styles.metaLink}>
+            <span style={styles.metaIcon}>✉</span> infoawqat@gmail.com
           </a>
           <a
             href="https://awqat.net/MFASInfo.pdf"
@@ -123,9 +123,9 @@ export default function Header({
         <>
           <div className="header-menu-overlay header-fade-in" onClick={() => setMenuOpen(false)} />
           <div className="header-menu-panel header-menu-in" role="menu" aria-label="Menu" style={menuStyle}>
-            <a href="mailto:info@awqat.net" className="header-menu-item" onClick={() => setMenuOpen(false)}>
+            <a href="mailto:infoawqat@gmail.com" className="header-menu-item" onClick={() => setMenuOpen(false)}>
               <span>✉</span>
-              <span>info@awqat.net</span>
+              <span>infoawqat@gmail.com</span>
             </a>
             <a
               href="https://awqat.net/MFASInfo.pdf"
