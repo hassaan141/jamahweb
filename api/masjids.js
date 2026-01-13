@@ -1,4 +1,3 @@
-import { kv } from '@vercel/kv'
 import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
@@ -11,19 +10,6 @@ export const config = {
 }
 
 export default async function handler(req) {
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0] ?? 'unknown'
-
-  const key = `rl:masjids:${ip}`
-  const count = (await kv.incr(key)) ?? 1
-
-  if (count === 1) {
-    await kv.expire(key, 60)
-  }
-
-  if (count > 60) {
-    return new Response('Rate limit exceeded', { status: 429 })
-  }
-
   const { data, error } = await supabase
     .from('organizations')
     .select(
