@@ -15,7 +15,7 @@ export async function fetchMasjids() {
     return { data: cached, error: null }
   }
   
-  // Fetch from Supabase
+  // Fetch from supabase
   const { data, error } = await supabase
     .from('organizations')
     .select('id, name, address, city, province_state, latitude, longitude, type, is_active')
