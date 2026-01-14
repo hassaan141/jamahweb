@@ -3,6 +3,18 @@
 import { useMemo } from "react"
 import hardcodedData from "../data/data.json"
 
+// Security: Validate external URLs to prevent XSS attacks
+function isValidExternalUrl(url) {
+  if (!url) return false
+  try {
+    const parsed = new URL(url)
+    // Only allow http and https protocols (prevent javascript:, data:, etc.)
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
 export default function MasjidDropdown({ masjids = [], selectedMasjid, onSelect }) {
   // Group masjids by city
   const masjidsByCity = useMemo(() => {
@@ -41,9 +53,15 @@ export default function MasjidDropdown({ masjids = [], selectedMasjid, onSelect 
             // Find masjid in combined list (regular + hardcoded)
             const m = allMasjids.find((x) => String(x.id) === id)
             
-            // If it has an external URL, navigate to it
+            // If it has an external URL, navigate to it (with security validation)
             if (m && m.externalUrl) {
-              window.location.href = m.externalUrl
+              if (isValidExternalUrl(m.externalUrl)) {
+                window.location.href = m.externalUrl
+              } else {
+                console.error('[MasjidDropdown] Invalid external URL blocked:', m.externalUrl)
+                // Fallback to normal selection if URL is invalid
+                onSelect?.(m || null)
+              }
               return
             }
             

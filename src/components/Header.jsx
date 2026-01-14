@@ -72,7 +72,7 @@ export default function Header({
             <img src={logoSrc} alt="Logo" style={styles.logo} className="header-logo" />
           </div>
           {/* <div style={styles.brandText}> */}
-            {/* <div style={styles.brandName}>Awqat</div>
+          {/* <div style={styles.brandName}>Awqat</div>
             <div style={styles.brandTag}>Prayer Times</div>
           </div> */}
         </div>
@@ -417,10 +417,3 @@ if (typeof document !== "undefined") {
     document.head.appendChild(menuStyles)
   }
 }
-
-// Render mobile menu via a lightweight portal approach
-// Note: Using simple DOM APIs to avoid adding dependencies
-if (typeof document !== 'undefined') {
-  // Observe menu state by polling a data-attribute that we toggle on the button
-}
-// ...existing code...

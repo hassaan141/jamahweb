@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { useMasjids } from "../services/supabase/hooks"
+import { fetchMasjids } from "../services/supabase/api"
 import MasjidDropdown from "../components/MasjidDropdown"
 import MapView from "../components/MapView"
 import Header from "../components/Header"
@@ -10,16 +10,30 @@ import Footer from "../components/Footer"
 
 export default function Home() {
   const navigate = useNavigate()
-  const { data: masjids = [], isLoading: loading, error: fetchError } = useMasjids()
+  const [masjids, setMasjids] = useState([])
+  const [loading, setLoading] = useState(true)
   const [userLocation, setUserLocation] = useState(null)
   const [mapCenter, setMapCenter] = useState({ lat: 49.2827, lng: -123.1207 })
   const [nearestMasjidId, setNearestMasjidId] = useState(null)
 
   useEffect(() => {
+    ; (async () => {
+      try {
+        const { data, error } = await fetchMasjids()
+        if (error) throw error
+        setMasjids(data)
+      } catch (e) {
+        console.error("Failed to load masjids:", e)
+      } finally {
+        setLoading(false)
+      }
+    })()
+  }, [])
+
+  useEffect(() => {
     if (typeof navigator !== "undefined" && navigator.geolocation) {
-      // Use single high-accuracy request instead of continuous watch
-      // to reduce battery drain and API calls
-      navigator.geolocation.getCurrentPosition(
+      // Prefer continuous high-accuracy updates; avoid cached locations
+      const watchId = navigator.geolocation.watchPosition(
         (pos) => {
           setUserLocation({
             lat: pos.coords.latitude,
@@ -27,12 +41,23 @@ export default function Home() {
             accuracy: pos.coords.accuracy,
           })
         },
-        (error) => {
-          console.warn("Geolocation failed:", error)
-          // Silently fail - app works without location
+        () => {
+          // Fallback to single read if watch fails
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy })
+            },
+            undefined,
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+          )
         },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }, // Cache for 1 minute
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
       )
+      return () => {
+        try {
+          navigator.geolocation.clearWatch(watchId)
+        } catch { }
+      }
     }
   }, [])
 
@@ -98,19 +123,10 @@ export default function Home() {
     )
   }
 
-  // Show error state if fetch failed
-  if (fetchError) {
-    return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.errorText}>Unable to load masjids. Please try again later.</div>
-      </div>
-    )
-  }
-
   return (
     <div style={styles.pageWrapper}>
       <div style={styles.container}>
-  <Header title="Awqat" subtitle="Vancouver Prayer Times & Masjid Finder" titleColor="#059669" />
+        <Header title="Awqat" subtitle="Prayer Times & Masjid Finder" titleColor="#059669" />
 
         <main style={styles.main}>
           <div style={styles.verseWrapper}>

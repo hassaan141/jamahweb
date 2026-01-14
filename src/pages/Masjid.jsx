@@ -2,9 +2,8 @@
 
 import { useEffect, useState, useMemo } from "react"
 import { useParams, Link } from "react-router-dom"
-import moment from "moment-hijri"
-
-import { useMasjids, useOrganization, useMultiplePrayerTimes } from "../services/supabase/hooks"
+import { fetchDailyPrayerTimes, fetchOrganizationById, fetchMasjids } from "../services/supabase/api"
+import { clearPrayerTimeCache } from "../services/supabase/cache"
 import PrayerTimes from "../components/PrayerTimes"
 import UpcomingPrayer from "../components/UpcomingPrayer"
 import DateToggle from "../components/DateToggle"
@@ -15,81 +14,144 @@ import Amenities from "../components/Amenities"
 
 export default function Masjid() {
   const { slug } = useParams()
-  const [dayChoice, setDayChoice] = useState("today")
+  const [prayerTimes, setPrayerTimes] = useState(null)
+  const [comparePrayerTimes, setComparePrayerTimes] = useState(null)
+  const [dayChoice, setDayChoice] = useState('today') // 'today' | 'tomorrow'
+  const [org, setOrg] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [orgId, setOrgId] = useState(null)
+  const [prayerLoading, setPrayerLoading] = useState(false)
+  const [error, setError] = useState(null)
 
-  const { data: masjids = [], isLoading: masjidsLoading } = useMasjids()
-  const { data: org, isLoading: orgLoading, error: orgError } = useOrganization(orgId)
-
+  // small slug -> id resolution helper
   function slugify(str) {
-    return String(str || "")
+    return String(str || '')
       .toLowerCase()
       .trim()
-      .replace(/\s+/g, "-")
-      .replace(/[^a-z0-9-]/g, "")
-      .replace(/-+/g, "-")
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '')
+      .replace(/-+/g, '-')
   }
+
+  // Validate slug format (security: prevent injection attacks)
+  function isValidSlug(slug) {
+    // Only allow lowercase letters, numbers, and hyphens
+    // Max length 100 to prevent abuse
+    return slug && /^[a-z0-9-]+$/.test(slug) && slug.length <= 100
+  }
+
+  // Helper to produce YYYY-MM-DD (local)
+  // toYMD removed (unused)
 
   const selectedDate = useMemo(() => {
     const today = new Date()
     const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
-    return dayChoice === "today" ? today : tomorrow
+    return dayChoice === 'today' ? today : tomorrow
   }, [dayChoice])
 
-  const compareDate = useMemo(() => {
-    const alt = new Date(selectedDate)
-    alt.setDate(alt.getDate() + (dayChoice === "today" ? 1 : -1))
-    return alt
-  }, [selectedDate, dayChoice])
-
-  const prayerQueries = useMultiplePrayerTimes(orgId, [selectedDate, compareDate])
-  const [selectedPrayerQuery, comparePrayerQuery] = prayerQueries
-
-  const prayerTimes = selectedPrayerQuery?.data
-  const comparePrayerTimes = comparePrayerQuery?.data
-  const prayerLoading =
-    selectedPrayerQuery?.isLoading || comparePrayerQuery?.isLoading
-
+  // Auto-refresh prayer times after midnight
   useEffect(() => {
-    if (!masjids.length || !slug) return
-    const found = masjids.find((o) => slugify(o.name) === slug)
-    if (found?.id) setOrgId(found.id)
-  }, [masjids, slug])
+    // Calculate milliseconds until 12:10 AM
+    function msUntilMidnightRefresh() {
+      const now = new Date()
+      const target = new Date(now)
+      target.setHours(0, 10, 0, 0) // 12:10 AM
 
-  const loading = masjidsLoading || orgLoading
+      // If we've already passed 12:10 AM today, target tomorrow's 12:10 AM
+      if (now > target) {
+        target.setDate(target.getDate() + 1)
+      }
 
-  const prayers = useMemo(() => {
-    if (!prayerTimes) return null
+      return target.getTime() - now.getTime()
+    }
 
-    const base = moment(selectedDate)
+    function scheduleNextRefresh() {
+      const delay = msUntilMidnightRefresh()
 
-    const map = [
-      ["Fajr", "fajr_azan"],
-      ["Sunrise", "sunrise"],
-      ["Dhuhr", "dhuhr_azan"],
-      ["Asr", "asr_azan"],
-      ["Maghrib", "maghrib_azan"],
-      ["Isha", "isha_azan"],
-    ]
+      return setTimeout(() => {
+        if (dayChoice === 'today') {
+          // Clear all prayer time caches to force fresh data from database
+          clearPrayerTimeCache()
+          // Clear prayer times to trigger re-fetch (avoids full page reload)
+          setPrayerTimes(null)
+          setComparePrayerTimes(null)
+        }
 
-    return map
-      .map(([name, field]) => {
-        const raw = prayerTimes[field]
-        if (!raw) return null
+        // Schedule next day's refresh
+        scheduleNextRefresh()
+      }, delay)
+    }
 
-        const match = String(raw).match(/(\d{1,2}):(\d{2})/)
-        if (!match) return null
+    const timeoutId = scheduleNextRefresh()
+    return () => clearTimeout(timeoutId)
+  }, [dayChoice])
 
-        const at = base.clone()
-          .hour(Number(match[1]))
-          .minute(Number(match[2]))
-          .second(0)
-          .millisecond(0)
+  // Initial load: resolve org by slug and fetch org details
+  useEffect(() => {
+    let active = true
+      ; (async () => {
+        setLoading(true)
+        try {
+          // Security: Validate slug format before processing
+          if (!isValidSlug(slug)) {
+            throw new Error('Invalid masjid URL')
+          }
 
-        return { name, at }
-      })
-      .filter(Boolean)
-  }, [prayerTimes, selectedDate])
+          const { data: masjids, error: listError } = await fetchMasjids()
+          if (listError) throw listError
+          const found = (masjids || []).find((o) => slugify(o.name) === slug)
+          if (!found) throw new Error('Masjid not found')
+          const id = found.id
+          const orgRes = await fetchOrganizationById(id)
+          if (orgRes.error) throw orgRes.error
+          if (!active) return
+          setOrgId(id)
+          setOrg(orgRes.data)
+        } catch (e) {
+          console.error('[Masjid] error', e)
+          if (!active) return
+          setError(e)
+        } finally {
+          if (active) setLoading(false)
+        }
+      })()
+    return () => { active = false }
+  }, [slug])
+
+  // Fetch prayer times for selected day
+  useEffect(() => {
+    if (!orgId) return
+    let active = true
+      ; (async () => {
+        setPrayerLoading(true)
+        try {
+          const ptRes = await fetchDailyPrayerTimes(orgId, selectedDate)
+          if (ptRes.error) throw ptRes.error
+          if (!active) return
+          setPrayerTimes(ptRes.data)
+
+          // fetch the alternate day (other day) so we can compare rows
+          // if current is today, compare with tomorrow; if current is tomorrow, compare with today
+          const alt = new Date(selectedDate)
+          const delta = dayChoice === 'today' ? 1 : -1
+          alt.setDate(alt.getDate() + delta)
+          const compareRes = await fetchDailyPrayerTimes(orgId, alt)
+          if (!active) return
+          setComparePrayerTimes(compareRes.error ? null : compareRes.data)
+        } catch (e) {
+          console.error('[Masjid] prayer fetch error', e)
+          if (!active) return
+          setPrayerTimes(null)
+          setComparePrayerTimes(null)
+        } finally {
+          if (active) setPrayerLoading(false)
+        }
+      })()
+    return () => { active = false }
+  }, [orgId, selectedDate, dayChoice])
+
+  // Fetch prayer times for tomorrow (for diff)
+  // Removed unused setPrayerTimesTomorrow and related useEffect
 
   if (loading) {
     return (
@@ -100,7 +162,7 @@ export default function Masjid() {
     )
   }
 
-  if (orgError || (!org && !orgLoading)) {
+  if (error) {
     return (
       <div style={styles.errorContainer}>
         <div style={styles.errorCard}>
@@ -121,42 +183,35 @@ export default function Masjid() {
           title={org?.name || "Masjid"}
           subtitle={
             org?.address
-              ? `${org.address}, ${org.city || ""}${org.province_state ? `, ${org.province_state}` : ""}`
-              : org?.city || ""
-          }
+              ? `${org.address}, ${org.city || ''}${org.province_state ? `, ${org.province_state}` : ''}${org.country ? `, ${org.country}` : ''}`.replace(/^,+|,+$|,\s*,/g, ',').trim()
+              : org?.city || ""}
           showBack
           backTo="/"
         />
 
         <main style={styles.main}>
+          {/* <DateBar /> */}
+          {/* Desktop layout: upcoming + toggle side by side */}
           <div style={layoutStyles.upRow}>
             <div style={layoutStyles.toggleWrap}>
               <DateToggle value={dayChoice} onChange={setDayChoice} />
             </div>
-
             <div style={layoutStyles.upcomingWrap}>
               {prayerLoading ? (
-                <div style={placeholderStyles.upcoming}>Loading…</div>
+                <div style={placeholderStyles.upcoming} aria-busy="true" aria-live="polite">Loading…</div>
               ) : (
-                prayers && (
-                  <UpcomingPrayer
-                    prayers={prayers}
-                    baseDate={selectedDate}
-                    align="left"
-                  />
-                )
+                prayerTimes && <UpcomingPrayer prayerTimes={prayerTimes} baseDate={selectedDate} align="left" />
               )}
             </div>
           </div>
-
           {prayerTimes ? (
             prayerLoading ? (
-              <div style={placeholderStyles.table}>Loading…</div>
+              <div style={placeholderStyles.table} aria-busy="true" aria-live="polite">Loading…</div>
             ) : (
               <PrayerTimes
                 prayerTimes={prayerTimes}
                 comparePrayerTimes={comparePrayerTimes}
-                highlightChanges={dayChoice === "tomorrow"}
+                highlightChanges={dayChoice === 'tomorrow'}
               />
             )
           ) : (
@@ -165,17 +220,14 @@ export default function Masjid() {
               <div style={styles.emptyText}>Please check back later</div>
             </div>
           )}
-
-          {org && <ActionButtons org={org} />}
-          {org && <Amenities org={org} />}
+          {org ? <ActionButtons org={org} /> : null}
+          {org ? <Amenities org={org} /> : null}
         </main>
       </div>
-
       <Footer />
     </div>
   )
 }
-
 
 const styles = {
   pageWrapper: {

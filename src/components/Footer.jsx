@@ -19,7 +19,7 @@ export default function Footer() {
           </div>
         </div>
         <div style={styles.copyright}>
-          <p style={styles.copyrightText}>© {new Date().getFullYear()} Awqat. All rights reserved.</p>
+          <p style={styles.copyrightText}>Â© {new Date().getFullYear()} Awqat. All rights reserved.</p>
         </div>
       </div>
     </footer>

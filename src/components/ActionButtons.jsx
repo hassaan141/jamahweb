@@ -93,7 +93,7 @@ export default function ActionButtons({ org }) {
       const url = isIOS ? apple : google
       if (url) {
         const win = window.open(url, isIOS ? '_self' : '_blank', 'noopener,noreferrer')
-        if (win) { try { win.opener = null } catch {} }
+        if (win) { try { win.opener = null } catch { } }
       }
     } catch (e) {
       // no-op
@@ -107,12 +107,12 @@ export default function ActionButtons({ org }) {
         {address && <div style={styles.subtitle}>{address}</div>}
         {org.description && <div style={styles.description}>{org.description}</div>}
       </div>
-      
+
       <div style={styles.buttonRow} className="action-button-row">
         {hasMaps && (
-          <button 
-            type="button" 
-            onClick={openMaps} 
+          <button
+            type="button"
+            onClick={openMaps}
             style={{ ...styles.btn, ...styles.btnMaps }}
             className="action-btn action-btn-maps"
           >
@@ -120,7 +120,7 @@ export default function ActionButtons({ org }) {
             <span>Directions</span>
           </button>
         )}
-        
+
         {hasWebsite && (
           <a
             href={websiteHref}
@@ -133,7 +133,7 @@ export default function ActionButtons({ org }) {
             <span>Website</span>
           </a>
         )}
-        
+
         {hasDonate && (
           <a
             href={donateHref}
@@ -146,7 +146,7 @@ export default function ActionButtons({ org }) {
             <span>Donate</span>
           </a>
         )}
-        
+
         {hasFacebook && (
           <a
             href={facebookHref}
@@ -159,7 +159,7 @@ export default function ActionButtons({ org }) {
             <span>Facebook</span>
           </a>
         )}
-        
+
         {hasInstagram && (
           <a
             href={instagramHref}
@@ -172,7 +172,7 @@ export default function ActionButtons({ org }) {
             <span>Instagram</span>
           </a>
         )}
-        
+
         {hasTwitter && (
           <a
             href={twitterHref}
@@ -185,7 +185,7 @@ export default function ActionButtons({ org }) {
             <span>Twitter</span>
           </a>
         )}
-        
+
         {hasYoutube && (
           <a
             href={youtubeHref}
@@ -198,7 +198,7 @@ export default function ActionButtons({ org }) {
             <span>YouTube</span>
           </a>
         )}
-        
+
         {hasWhatsapp && (
           <a
             href={whatsappHref}
@@ -255,14 +255,14 @@ const styles = {
     marginBottom: 16,
     textAlign: 'center',
   },
-  title: { 
-    fontSize: 16, 
-    fontWeight: 700, 
+  title: {
+    fontSize: 16,
+    fontWeight: 700,
     color: '#065f46',
     marginBottom: 4,
   },
-  subtitle: { 
-    fontSize: 14, 
+  subtitle: {
+    fontSize: 14,
     color: '#6b7280',
     lineHeight: 1.4,
   },
