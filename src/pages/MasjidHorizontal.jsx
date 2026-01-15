@@ -2,6 +2,7 @@
 import { useEffect, useState, useMemo } from "react"
 import { useParams, Link } from "react-router-dom"
 import { fetchDailyPrayerTimes, fetchOrganizationById, fetchMasjids } from "../services/supabase/api"
+import { clearPrayerTimeCache } from "../services/supabase/cache"
 import PrayerTimesHorizontal from "../components/PrayerTimesHorizontal"
 import moment from "moment-hijri"
 
@@ -26,7 +27,43 @@ export default function MasjidHorizontal() {
         return () => clearInterval(iv)
     }, [])
 
-    const selectedDate = useMemo(() => new Date(), [])
+    const [selectedDate, setSelectedDate] = useState(new Date())
+
+    // Auto-refresh prayer times after midnight for TV displays left running
+    useEffect(() => {
+        // Calculate milliseconds until 12:10 AM
+        function msUntilMidnightRefresh() {
+            const now = new Date()
+            const target = new Date(now)
+            target.setHours(0, 10, 0, 0) // 12:10 AM
+
+            // If we've already passed 12:10 AM today, target tomorrow's 12:10 AM
+            if (now > target) {
+                target.setDate(target.getDate() + 1)
+            }
+
+            return target.getTime() - now.getTime()
+        }
+
+        function scheduleNextRefresh() {
+            const delay = msUntilMidnightRefresh()
+
+            return setTimeout(() => {
+                // Clear all prayer time caches to force fresh data from database
+                clearPrayerTimeCache()
+                // Update to current date
+                setSelectedDate(new Date())
+                // Clear prayer times to trigger re-fetch
+                setPrayerTimes(null)
+
+                // Schedule next day's refresh
+                scheduleNextRefresh()
+            }, delay)
+        }
+
+        const timeoutId = scheduleNextRefresh()
+        return () => clearTimeout(timeoutId)
+    }, [])
 
     // Resolve org by slug
     useEffect(() => {
@@ -102,38 +139,59 @@ export default function MasjidHorizontal() {
             return t
         }
 
-        const FIELD_BY_NAME = {
-            Fajr: "fajr_azan",
-            Sunrise: "sunrise",
-            Dhuhr: "dhuhr_azan",
-            Asr: "asr_azan",
-            Maghrib: "maghrib_azan",
-            Isha: "isha_azan",
-        }
+        const PRAYERS = [
+            { name: 'Fajr', azanField: 'fajr_azan', iqamahField: 'fajr_iqamah' },
+            { name: 'Sunrise', azanField: 'sunrise', iqamahField: null },
+            { name: 'Dhuhr', azanField: 'dhuhr_azan', iqamahField: 'dhuhr_iqamah' },
+            { name: 'Asr', azanField: 'asr_azan', iqamahField: 'asr_iqamah' },
+            { name: 'Maghrib', azanField: 'maghrib_azan', iqamahField: 'maghrib_iqamah' },
+            { name: 'Isha', azanField: 'isha_azan', iqamahField: 'isha_iqamah' },
+        ]
 
-        const ORDER = ["Fajr", "Sunrise", "Dhuhr", "Asr", "Maghrib", "Isha"]
         const now = moment()
         const today = moment()
 
-        const moments = {}
-        for (const name of ORDER) {
-            const field = FIELD_BY_NAME[name]
-            const raw = prayerTimes[field]
-            const m = toMomentFor(raw, today)
-            if (m && m.isValid()) moments[name] = { name, at: m, raw }
-        }
+        // Build list of all upcoming times (both Adhan and Iqamah)
+        const allTimes = []
 
-        for (const name of ORDER) {
-            const entry = moments[name]
-            if (entry && entry.at.isAfter(now)) {
-                return { name: entry.name, at: entry.at, raw: entry.raw }
+        for (const prayer of PRAYERS) {
+            // Add Adhan time
+            const azanTime = toMomentFor(prayerTimes[prayer.azanField], today)
+            if (azanTime && azanTime.isValid()) {
+                allTimes.push({
+                    name: prayer.name,
+                    type: 'Adhan',
+                    at: azanTime,
+                    raw: prayerTimes[prayer.azanField]
+                })
+            }
+
+            // Add Iqamah time (if exists and not Sunrise)
+            if (prayer.iqamahField) {
+                const iqamahTime = toMomentFor(prayerTimes[prayer.iqamahField], today)
+                if (iqamahTime && iqamahTime.isValid()) {
+                    allTimes.push({
+                        name: prayer.name,
+                        type: 'Iqamah',
+                        at: iqamahTime,
+                        raw: prayerTimes[prayer.iqamahField]
+                    })
+                }
             }
         }
 
-        const fajr = moments.Fajr?.at
-        if (fajr) {
-            const at = fajr.clone().add(1, "day")
-            return { name: "Fajr", at, raw: moments.Fajr.raw }
+        // Find the next time that is still in the future (with 5 second buffer)
+        for (const time of allTimes) {
+            if (time.at.diff(now) > 5000) {
+                return time
+            }
+        }
+
+        // All times have passed - show tomorrow's Fajr Adhan
+        const fajrAdhan = allTimes.find(t => t.name === 'Fajr' && t.type === 'Adhan')
+        if (fajrAdhan) {
+            const tomorrowFajr = fajrAdhan.at.clone().add(1, 'day')
+            return { ...fajrAdhan, at: tomorrowFajr }
         }
 
         return null
@@ -184,8 +242,8 @@ export default function MasjidHorizontal() {
                 {nextPrayer && (
                     <div style={styles.nextPrayerBanner}>
                         <div style={styles.nextPrayerLeft}>
-                            <span style={styles.nextPrayerLabel}>Next Prayer</span>
-                            <span style={styles.nextPrayerName}>{nextPrayer.name}</span>
+                            <span style={styles.nextPrayerLabel}>Next {nextPrayer.type}</span>
+                            <span style={styles.nextPrayerName}>{nextPrayer.name} {nextPrayer.type}</span>
                             <span style={styles.nextPrayerTime}>{nextPrayer.at.format("h:mm A")}</span>
                         </div>
                         <div style={styles.countdownContainer}>
@@ -381,3 +439,4 @@ if (typeof document !== "undefined") {
         document.head.appendChild(styleSheet)
     }
 }
+

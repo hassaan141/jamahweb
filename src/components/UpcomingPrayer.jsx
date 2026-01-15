@@ -35,81 +35,96 @@ export default function UpcomingPrayer({ prayerTimes, baseDate, align = 'center'
     }
 
     // Helper: build a moment for a specific date from 24-hour time
-    function toMomentFor(prayerName, timeStr, base) {
+    function toMomentFor(timeStr, base) {
       const parsed = parseHHMM(timeStr)
       if (!parsed) return null
       const { h, m } = parsed
-      // Server provides times in 24-hour format, use directly
       const t = (base || moment()).clone()
       t.hour(h).minute(m).second(0).millisecond(0)
       return t
     }
 
-    const FIELD_BY_NAME = {
-      Fajr: 'fajr_azan',
-      Sunrise: 'sunrise',
-      Dhuhr: 'dhuhr_azan',
-      Asr: 'asr_azan',
-      Maghrib: 'maghrib_azan',
-      Isha: 'isha_azan',
-    }
+    const PRAYERS = [
+      { name: 'Fajr', azanField: 'fajr_azan', iqamahField: 'fajr_iqamah' },
+      { name: 'Sunrise', azanField: 'sunrise', iqamahField: null },
+      { name: 'Dhuhr', azanField: 'dhuhr_azan', iqamahField: 'dhuhr_iqamah' },
+      { name: 'Asr', azanField: 'asr_azan', iqamahField: 'asr_iqamah' },
+      { name: 'Maghrib', azanField: 'maghrib_azan', iqamahField: 'maghrib_iqamah' },
+      { name: 'Isha', azanField: 'isha_azan', iqamahField: 'isha_iqamah' },
+    ]
 
-    const ORDER = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha']
     const now = moment()
     const today = baseDate ? moment(baseDate) : now.clone()
+    const prayerDataDate = today.format('YYYY-MM-DD')
+    const currentDate = now.format('YYYY-MM-DD')
 
-    // Build today's prayer moments
-    const moments = {}
-    for (const name of ORDER) {
-      const field = FIELD_BY_NAME[name]
-      const raw = prayerTimes[field]
-      const m = toMomentFor(name, raw, today)
-      if (m && m.isValid()) moments[name] = { name, at: m, raw }
-    }
+    // Build list of all upcoming times (both Adhan and Iqamah)
+    const allTimes = []
 
-    // Find the next prayer that is still in the future
-    for (const name of ORDER) {
-      const entry = moments[name]
-      if (entry && entry.at.isAfter(now)) {
-        return { name: entry.name, at: entry.at, raw: entry.raw, isTomorrow: false }
+    for (const prayer of PRAYERS) {
+      // Add Adhan time
+      const azanTime = toMomentFor(prayerTimes[prayer.azanField], today)
+      if (azanTime && azanTime.isValid()) {
+        allTimes.push({
+          name: prayer.name,
+          type: 'Adhan',
+          at: azanTime,
+          raw: prayerTimes[prayer.azanField]
+        })
+      }
+
+      // Add Iqamah time (if exists and not Sunrise)
+      if (prayer.iqamahField) {
+        const iqamahTime = toMomentFor(prayerTimes[prayer.iqamahField], today)
+        if (iqamahTime && iqamahTime.isValid()) {
+          allTimes.push({
+            name: prayer.name,
+            type: 'Iqamah',
+            at: iqamahTime,
+            raw: prayerTimes[prayer.iqamahField]
+          })
+        }
       }
     }
 
-    // All prayers have passed - determine if we need today's or tomorrow's Fajr
-    const fajr = moments.Fajr
-    if (fajr) {
-      // Check if the prayer data's date matches current date
-      const prayerDataDate = today.format('YYYY-MM-DD')
-      const currentDate = now.format('YYYY-MM-DD')
+    // Find the next time that is still in the future (with 5 second buffer)
+    for (const time of allTimes) {
+      if (time.at.diff(now) > 5000) {
+        return time
+      }
+    }
 
+    // All times have passed - show tomorrow's Fajr Adhan
+    // BUT: if we're past midnight (12:00-12:10 AM) with old data, show today's Fajr
+    const fajrAdhan = allTimes.find(t => t.name === 'Fajr' && t.type === 'Adhan')
+    if (fajrAdhan) {
       // If prayer data is from yesterday (happens between 12:00-12:10 AM before refresh)
       if (prayerDataDate < currentDate) {
         // We're past midnight with old data - add 1 day to get today's Fajr
-        const todayFajr = fajr.at.clone().add(1, 'day')
-        return { name: 'Fajr', at: todayFajr, raw: fajr.raw, isTomorrow: false }
+        const todayFajr = fajrAdhan.at.clone().add(1, 'day')
+        return { ...fajrAdhan, at: todayFajr }
       }
 
-      // Prayer data is current - check if we're in early morning before Fajr
-      // Extended buffer: 12:00 AM - 12:15 AM to account for data propagation delays
+      // Check if we're in early morning before Fajr (12:00-12:15 AM or 0-3 AM with Fajr at 4+ AM)
       const isEarlyMorning = now.hour() === 0 && now.minute() < 15
-      const isBeforeFajr = now.hour() >= 0 && now.hour() <= 3 && fajr.at.hour() >= 4
+      const isBeforeFajr = now.hour() >= 0 && now.hour() <= 3 && fajrAdhan.at.hour() >= 4
 
       if (isEarlyMorning || isBeforeFajr) {
-        // We're in early morning hours, Fajr is later today
-        return { name: 'Fajr', at: fajr.at, raw: fajr.raw, isTomorrow: false }
+        // We're in early morning hours, show today's Fajr
+        return fajrAdhan
       }
 
-      // Otherwise, target tomorrow's Fajr
-      const tomorrowFajr = fajr.at.clone().add(1, 'day')
-      return { name: 'Fajr', at: tomorrowFajr, raw: fajr.raw, isTomorrow: true }
+      // Otherwise, target tomorrow's Fajr Adhan
+      const tomorrowFajr = fajrAdhan.at.clone().add(1, 'day')
+      return { ...fajrAdhan, at: tomorrowFajr }
     }
 
     return null
   }, [prayerTimes, baseDate])
 
   function formatCountdown(diffMs) {
-    // If countdown is negative or zero, show a minimal positive time to avoid 00:00:00
-    if (!diffMs || diffMs <= 0) return '00h 00m 01s'
+    // If countdown is very low, show minimal time
+    if (!diffMs || diffMs <= 1000) return '00h 00m 00s'
     const totalSeconds = Math.floor(diffMs / 1000)
     const hours = Math.floor(totalSeconds / 3600)
     const minutes = Math.floor((totalSeconds % 3600) / 60)
@@ -121,13 +136,6 @@ export default function UpcomingPrayer({ prayerTimes, baseDate, align = 'center'
   if (!next) return null
   const diffMs = next.at.diff(moment())
 
-  // Safety check: if the countdown is negative (prayer time has passed), force a re-calculation
-  // This shouldn't happen with the improved logic above, but acts as a failsafe
-  if (diffMs < 0) {
-    // Force re-render on next tick to recalculate
-    setTimeout(() => forceTick((t) => t + 1), 100)
-  }
-
   const cardStyle = {
     ...styles.upcomingCard,
     margin: align === 'center' ? '0 auto 12px' : '0 0 12px 0',
@@ -136,14 +144,13 @@ export default function UpcomingPrayer({ prayerTimes, baseDate, align = 'center'
   return (
     <div style={cardStyle}>
       <div style={styles.upLeft}>
-        <span style={styles.upLead}>Next prayer in</span>
+        <span style={styles.upLead}>Next {next.type.toLowerCase()} in</span>
         <span style={styles.upCountdown}>{formatCountdown(diffMs)}</span>
       </div>
       <div style={styles.upRight}>
-        <span style={styles.upName}>{next.name}</span>
+        <span style={styles.upName}>{next.name} {next.type}</span>
         <span style={styles.dot}>•</span>
         <span style={styles.upTime}>{next.at.format('h:mm A')}</span>
-        {/* Removed explicit (tomorrow) label per request */}
       </div>
     </div>
   )
