@@ -158,7 +158,6 @@ export default function MasjidHorizontal() {
         }
 
         return null
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [prayerTimes, tick])  // tick MUST be here to recalculate every second!
 
     function formatCountdown(diffMs) {
