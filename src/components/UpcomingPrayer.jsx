@@ -41,39 +41,45 @@ export default function UpcomingPrayer({ prayerTimes, align = 'center', onDateCh
       return moment().startOf('day').hour(parsed.h).minute(parsed.m).second(0)
     }
 
-    const PRAYERS = [
-      { name: 'Fajr', field: 'fajr_azan' },
-      { name: 'Sunrise', field: 'sunrise' },
-      { name: 'Dhuhr', field: 'dhuhr_azan' },
-      { name: 'Asr', field: 'asr_azan' },
-      { name: 'Maghrib', field: 'maghrib_azan' },
-      { name: 'Isha', field: 'isha_azan' },
+    // Sequence: Adhan → Iqamah → next Adhan → next Iqamah...
+    // Sunrise has no iqamah
+    const TIMES = [
+      { name: 'Fajr', type: 'Adhan', field: 'fajr_azan' },
+      { name: 'Fajr', type: 'Iqamah', field: 'fajr_iqamah' },
+      { name: 'Sunrise', type: null, field: 'sunrise' },
+      { name: 'Dhuhr', type: 'Adhan', field: 'dhuhr_azan' },
+      { name: 'Dhuhr', type: 'Iqamah', field: 'dhuhr_iqamah' },
+      { name: 'Asr', type: 'Adhan', field: 'asr_azan' },
+      { name: 'Asr', type: 'Iqamah', field: 'asr_iqamah' },
+      { name: 'Maghrib', type: 'Adhan', field: 'maghrib_azan' },
+      { name: 'Maghrib', type: 'Iqamah', field: 'maghrib_iqamah' },
+      { name: 'Isha', type: 'Adhan', field: 'isha_azan' },
+      { name: 'Isha', type: 'Iqamah', field: 'isha_iqamah' },
     ]
 
     const now = moment()
 
-    // Find the first prayer that is still in the future
-    for (const { name, field } of PRAYERS) {
+    // Find the first time that is still in the future
+    for (const { name, type, field } of TIMES) {
       const raw = prayerTimes[field]
       const prayerTime = toMomentFor(raw)
       if (!prayerTime || !prayerTime.isValid()) continue
 
-      // Prayer must be in the future to be "next"
       if (prayerTime.isAfter(now)) {
-        return { name, at: prayerTime, raw, isTomorrow: false }
+        const label = type ? `${name} ${type}` : name
+        return { name, type, label, at: prayerTime, raw, isTomorrow: false }
       }
     }
 
-    // All prayers have passed - return tomorrow's Fajr
+    // All times have passed - return tomorrow's Fajr Adhan
     const fajrRaw = prayerTimes.fajr_azan
     const tomorrowFajr = toMomentFor(fajrRaw)
     if (tomorrowFajr && tomorrowFajr.isValid()) {
       tomorrowFajr.add(1, 'day')
-      return { name: 'Fajr', at: tomorrowFajr, raw: fajrRaw, isTomorrow: true }
+      return { name: 'Fajr', type: 'Adhan', label: 'Fajr Adhan', at: tomorrowFajr, raw: fajrRaw, isTomorrow: true }
     }
 
     return null
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prayerTimes, tick])  // tick MUST be here to recalculate every second!
 
   function formatCountdown(diffMs) {
@@ -101,14 +107,11 @@ export default function UpcomingPrayer({ prayerTimes, align = 'center', onDateCh
   return (
     <div style={cardStyle}>
       <div style={styles.upLeft}>
-        <span style={styles.upLead}>Next prayer in</span>
+        <span style={styles.upLead}>{next.label} in</span>
         <span style={styles.upCountdown}>{formatCountdown(diffMs)}</span>
       </div>
       <div style={styles.upRight}>
-        <span style={styles.upName}>{next.name}</span>
-        <span style={styles.dot}>•</span>
         <span style={styles.upTime}>{next.at.format('h:mm A')}</span>
-        {/* Removed explicit (tomorrow) label per request */}
       </div>
     </div>
   )
