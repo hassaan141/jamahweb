@@ -200,7 +200,8 @@ export default function Masjid() {
               {prayerLoading ? (
                 <div style={placeholderStyles.upcoming} aria-busy="true" aria-live="polite">Loading…</div>
               ) : (
-                prayerTimes && <UpcomingPrayer prayerTimes={prayerTimes} baseDate={selectedDate} align="left" />
+                // Only show countdown for today's prayers, not tomorrow's
+                dayChoice === 'today' && prayerTimes && <UpcomingPrayer prayerTimes={prayerTimes} align="left" />
               )}
             </div>
           </div>

@@ -2,7 +2,6 @@
 import { useEffect, useState, useMemo } from "react"
 import { useParams, Link } from "react-router-dom"
 import { fetchDailyPrayerTimes, fetchOrganizationById, fetchMasjids } from "../services/supabase/api"
-import { clearPrayerTimeCache } from "../services/supabase/cache"
 import PrayerTimesHorizontal from "../components/PrayerTimesHorizontal"
 import moment from "moment-hijri"
 
@@ -13,7 +12,7 @@ export default function MasjidHorizontal() {
     const [org, setOrg] = useState(null)
     const [prayerTimes, setPrayerTimes] = useState(null)
     const [loading, setLoading] = useState(true)
-    const [, forceTick] = useState(0)
+    const [tick, setTick] = useState(0)
 
     // Clock timer
     useEffect(() => {
@@ -23,47 +22,12 @@ export default function MasjidHorizontal() {
 
     // Countdown ticker
     useEffect(() => {
-        const iv = setInterval(() => forceTick((t) => t + 1), 1000)
+        const iv = setInterval(() => setTick((t) => t + 1), 1000)
         return () => clearInterval(iv)
     }, [])
 
-    const [selectedDate, setSelectedDate] = useState(new Date())
-
-    // Auto-refresh prayer times after midnight for TV displays left running
-    useEffect(() => {
-        // Calculate milliseconds until 12:10 AM
-        function msUntilMidnightRefresh() {
-            const now = new Date()
-            const target = new Date(now)
-            target.setHours(0, 10, 0, 0) // 12:10 AM
-
-            // If we've already passed 12:10 AM today, target tomorrow's 12:10 AM
-            if (now > target) {
-                target.setDate(target.getDate() + 1)
-            }
-
-            return target.getTime() - now.getTime()
-        }
-
-        function scheduleNextRefresh() {
-            const delay = msUntilMidnightRefresh()
-
-            return setTimeout(() => {
-                // Clear all prayer time caches to force fresh data from database
-                clearPrayerTimeCache()
-                // Update to current date
-                setSelectedDate(new Date())
-                // Clear prayer times to trigger re-fetch
-                setPrayerTimes(null)
-
-                // Schedule next day's refresh
-                scheduleNextRefresh()
-            }, delay)
-        }
-
-        const timeoutId = scheduleNextRefresh()
-        return () => clearTimeout(timeoutId)
-    }, [])
+    // Always fetch today's prayer times for TV display
+    const selectedDate = useMemo(() => new Date(), [])
 
     // Resolve org by slug
     useEffect(() => {
@@ -120,6 +84,30 @@ export default function MasjidHorizontal() {
         return () => { active = false }
     }, [orgId, selectedDate])
 
+    // Auto-refresh prayer times at midnight
+    useEffect(() => {
+        function msUntilMidnight() {
+            const now = new Date()
+            const target = new Date(now)
+            target.setHours(24, 0, 10, 0) // 12:00:10 AM next day
+            return target.getTime() - now.getTime()
+        }
+
+        function scheduleRefresh() {
+            const delay = msUntilMidnight()
+            return setTimeout(() => {
+                // Force re-fetch by clearing prayer times
+                setPrayerTimes(null)
+                setLoading(true)
+                // Schedule next refresh
+                scheduleRefresh()
+            }, delay)
+        }
+
+        const timeoutId = scheduleRefresh()
+        return () => clearTimeout(timeoutId)
+    }, [])
+
     const nextPrayer = useMemo(() => {
         if (!prayerTimes) return null
 
@@ -131,75 +119,54 @@ export default function MasjidHorizontal() {
             return { h: Number.parseInt(match[1], 10), m: Number.parseInt(match[2], 10) }
         }
 
-        function toMomentFor(timeStr, base) {
+        // Helper: build a moment for today with given time
+        function toMomentFor(timeStr) {
             const parsed = parseHHMM(timeStr)
             if (!parsed) return null
-            const t = (base || moment()).clone()
-            t.hour(parsed.h).minute(parsed.m).second(0).millisecond(0)
-            return t
+            return moment().startOf('day').hour(parsed.h).minute(parsed.m).second(0)
         }
 
         const PRAYERS = [
-            { name: 'Fajr', azanField: 'fajr_azan', iqamahField: 'fajr_iqamah' },
-            { name: 'Sunrise', azanField: 'sunrise', iqamahField: null },
-            { name: 'Dhuhr', azanField: 'dhuhr_azan', iqamahField: 'dhuhr_iqamah' },
-            { name: 'Asr', azanField: 'asr_azan', iqamahField: 'asr_iqamah' },
-            { name: 'Maghrib', azanField: 'maghrib_azan', iqamahField: 'maghrib_iqamah' },
-            { name: 'Isha', azanField: 'isha_azan', iqamahField: 'isha_iqamah' },
+            { name: "Fajr", field: "fajr_azan" },
+            { name: "Sunrise", field: "sunrise" },
+            { name: "Dhuhr", field: "dhuhr_azan" },
+            { name: "Asr", field: "asr_azan" },
+            { name: "Maghrib", field: "maghrib_azan" },
+            { name: "Isha", field: "isha_azan" },
         ]
 
         const now = moment()
-        const today = moment()
 
-        // Build list of all upcoming times (both Adhan and Iqamah)
-        const allTimes = []
+        // Find the first prayer that is still in the future
+        for (const { name, field } of PRAYERS) {
+            const raw = prayerTimes[field]
+            const prayerTime = toMomentFor(raw)
+            if (!prayerTime || !prayerTime.isValid()) continue
 
-        for (const prayer of PRAYERS) {
-            // Add Adhan time
-            const azanTime = toMomentFor(prayerTimes[prayer.azanField], today)
-            if (azanTime && azanTime.isValid()) {
-                allTimes.push({
-                    name: prayer.name,
-                    type: 'Adhan',
-                    at: azanTime,
-                    raw: prayerTimes[prayer.azanField]
-                })
-            }
-
-            // Add Iqamah time (if exists and not Sunrise)
-            if (prayer.iqamahField) {
-                const iqamahTime = toMomentFor(prayerTimes[prayer.iqamahField], today)
-                if (iqamahTime && iqamahTime.isValid()) {
-                    allTimes.push({
-                        name: prayer.name,
-                        type: 'Iqamah',
-                        at: iqamahTime,
-                        raw: prayerTimes[prayer.iqamahField]
-                    })
-                }
+            // Prayer must be in the future to be "next"
+            if (prayerTime.isAfter(now)) {
+                return { name, at: prayerTime, raw }
             }
         }
 
-        // Find the next time that is still in the future (with 5 second buffer)
-        for (const time of allTimes) {
-            if (time.at.diff(now) > 5000) {
-                return time
-            }
-        }
-
-        // All times have passed - show tomorrow's Fajr Adhan
-        const fajrAdhan = allTimes.find(t => t.name === 'Fajr' && t.type === 'Adhan')
-        if (fajrAdhan) {
-            const tomorrowFajr = fajrAdhan.at.clone().add(1, 'day')
-            return { ...fajrAdhan, at: tomorrowFajr }
+        // All prayers have passed - return tomorrow's Fajr
+        const fajrRaw = prayerTimes.fajr_azan
+        const tomorrowFajr = toMomentFor(fajrRaw)
+        if (tomorrowFajr && tomorrowFajr.isValid()) {
+            tomorrowFajr.add(1, "day")
+            return { name: "Fajr", at: tomorrowFajr, raw: fajrRaw }
         }
 
         return null
-    }, [prayerTimes])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [prayerTimes, tick])  // tick MUST be here to recalculate every second!
 
     function formatCountdown(diffMs) {
-        if (!diffMs || diffMs <= 0) return "00h 00m 00s"
         const totalSeconds = Math.floor(diffMs / 1000)
+        // Ensure we never show negative values
+        if (totalSeconds <= 0) {
+            return "00h 00m 00s"
+        }
         const hours = Math.floor(totalSeconds / 3600)
         const minutes = Math.floor((totalSeconds % 3600) / 60)
         const seconds = totalSeconds % 60
@@ -242,8 +209,8 @@ export default function MasjidHorizontal() {
                 {nextPrayer && (
                     <div style={styles.nextPrayerBanner}>
                         <div style={styles.nextPrayerLeft}>
-                            <span style={styles.nextPrayerLabel}>Next {nextPrayer.type}</span>
-                            <span style={styles.nextPrayerName}>{nextPrayer.name} {nextPrayer.type}</span>
+                            <span style={styles.nextPrayerLabel}>Next Prayer</span>
+                            <span style={styles.nextPrayerName}>{nextPrayer.name}</span>
                             <span style={styles.nextPrayerTime}>{nextPrayer.at.format("h:mm A")}</span>
                         </div>
                         <div style={styles.countdownContainer}>
@@ -439,4 +406,5 @@ if (typeof document !== "undefined") {
         document.head.appendChild(styleSheet)
     }
 }
+
 
