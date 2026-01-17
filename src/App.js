@@ -1,5 +1,6 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Analytics } from "@vercel/analytics/react"
 import Home from './pages/Home'
 import Masjid from './pages/Masjid'
 import MasjidHorizontal from './pages/MasjidHorizontal'
@@ -14,6 +15,7 @@ export default function App() {
         <Route path="/masjid/:slug/tv" element={<MasjidHorizontal />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <Analytics />
     </BrowserRouter>
   )
 }
