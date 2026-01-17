@@ -25,12 +25,11 @@ const masjidIcon = new L.Icon({
   popupAnchor: [0, -41],
 })
 
-// 1. Define your fallback center here (e.g., London, NY, or your specific city)
-// This fulfills the "center in lat long I provide" requirement.
-const DEFAULT_CENTER = { lat: 51.505, lng: -0.09 } // Change these to your default coordinates
+// Default center: Downtown Vancouver, BC - ALWAYS use this as fallback
+const VANCOUVER_CENTER = { lat: 49.246353856458896, lng: -123.06389031962716 }
 const DEFAULT_ZOOM = 13 // Zoom 13 is roughly a 10km radius view
 
-export default function MapView({ masjids = [], center, userLocation, highlightMasjidId }) {
+export default function MapView({ masjids = [], userLocation, highlightMasjidId }) {
   const normalized = (masjids || []).map((m) => ({
     ...m,
     latitude: typeof m.latitude === "string" ? Number.parseFloat(m.latitude) : m.latitude,
@@ -40,27 +39,16 @@ export default function MapView({ masjids = [], center, userLocation, highlightM
   const combined = [...normalized, ...hardcodedData]
   const valid = combined.filter((m) => Number.isFinite(m.latitude) && Number.isFinite(m.longitude))
 
-  // 2. Determine the Map Center priority: User > Provided Prop > Hardcoded Default
-  const mapCenterLat = userLocation?.lat ?? center?.lat ?? DEFAULT_CENTER.lat
-  const mapCenterLng = userLocation?.lng ?? center?.lng ?? DEFAULT_CENTER.lng
-  
-  // If we are using the fallback (no user location), we ensure the zoom is set to the 10km radius level
-  const zoomLevel = DEFAULT_ZOOM
-
   return (
     <div style={styles.container} className="map-wrap">
-      <MapContainer 
-        center={[mapCenterLat, mapCenterLng]} 
-        zoom={zoomLevel} 
-        style={styles.map} 
+      <MapContainer
+        center={[VANCOUVER_CENTER.lat, VANCOUVER_CENTER.lng]}
+        zoom={DEFAULT_ZOOM}
+        style={styles.map}
         scrollWheelZoom
       >
-        <MapController 
-          center={{ lat: mapCenterLat, lng: mapCenterLng }} 
-          userLocation={userLocation} 
-          zoom={zoomLevel}
-        />
-        
+        <MapController userLocation={userLocation} />
+
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution="&copy; OpenStreetMap contributors"
@@ -79,7 +67,7 @@ export default function MapView({ masjids = [], center, userLocation, highlightM
         {valid.map((m) => {
           const slug = String(m.name || m.id).toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-')
           const href = m.externalUrl ? m.externalUrl : `/masjid/${slug}`
-          
+
           return (
             <Marker key={m.id} position={[m.latitude, m.longitude]} icon={masjidIcon}>
               <Popup>
@@ -104,36 +92,35 @@ export default function MapView({ masjids = [], center, userLocation, highlightM
   )
 }
 
-function MapController({ center, userLocation, zoom }) {
+function MapController({ userLocation }) {
   const map = useMap()
   const userInteracted = useRef(false)
+  const hasMovedToUser = useRef(false)
 
   useEffect(() => {
     // Handler to detect when user manually drags the map
     const handleDrag = () => {
       userInteracted.current = true
     }
-    
-    // which would break the centering logic unnecessarily.
+
     map.on('dragstart', handleDrag)
 
-    // Cleanup listener on unmount
     return () => {
       map.off('dragstart', handleDrag)
     }
   }, [map])
 
   useEffect(() => {
-    if (userLocation) {
-      // If user hasn't dragged away, keep the map centered on them
-      if (!userInteracted.current) {
-        map.flyTo([userLocation.lat, userLocation.lng], zoom)
-      }
-    } else {
-      // Fallback center (instant jump)
-      map.setView([center.lat, center.lng], zoom)
+    // Only fly to user location if:
+    // 1. User location is available
+    // 2. User hasn't manually dragged the map
+    // 3. We haven't already moved to user (prevents continuous flying)
+    if (userLocation && !userInteracted.current && !hasMovedToUser.current) {
+      map.flyTo([userLocation.lat, userLocation.lng], DEFAULT_ZOOM)
+      hasMovedToUser.current = true
     }
-  }, [userLocation, center, zoom, map])
+    // If no user location, map stays at Vancouver (its initial center)
+  }, [userLocation, map])
 
   return null
 }

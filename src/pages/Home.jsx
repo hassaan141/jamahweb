@@ -13,7 +13,6 @@ export default function Home() {
   const [masjids, setMasjids] = useState([])
   const [loading, setLoading] = useState(true)
   const [userLocation, setUserLocation] = useState(null)
-  const [mapCenter, setMapCenter] = useState({ lat: 49.2827, lng: -123.1207 })
   const [nearestMasjidId, setNearestMasjidId] = useState(null)
 
   useEffect(() => {
@@ -61,8 +60,13 @@ export default function Home() {
     }
   }, [])
 
+  // Find nearest masjid when user location is available
   useEffect(() => {
-    if (!masjids?.length) return
+    if (!masjids?.length || !userLocation) {
+      setNearestMasjidId(null)
+      return
+    }
+
     const normalized = (masjids || [])
       .map((m) => ({
         ...m,
@@ -71,31 +75,16 @@ export default function Home() {
       }))
       .filter((m) => Number.isFinite(m.latitude) && Number.isFinite(m.longitude))
 
-    if (userLocation) {
-      let best = null
-      let bestD = Infinity
-      for (const m of normalized) {
-        const d = haversine(userLocation.lat, userLocation.lng, m.latitude, m.longitude)
-        if (d < bestD) {
-          bestD = d
-          best = m
-        }
-      }
-      if (best) {
-        setNearestMasjidId(best.id)
-        // Center map on the user's location (not the masjid)
-        setMapCenter({ lat: userLocation.lat, lng: userLocation.lng })
-        return
+    let best = null
+    let bestD = Infinity
+    for (const m of normalized) {
+      const d = haversine(userLocation.lat, userLocation.lng, m.latitude, m.longitude)
+      if (d < bestD) {
+        bestD = d
+        best = m
       }
     }
-
-    if (normalized.length) {
-      const centerLat = normalized.reduce((s, m) => s + m.latitude, 0) / normalized.length
-      const centerLng = normalized.reduce((s, m) => s + m.longitude, 0) / normalized.length
-      setMapCenter({ lat: centerLat, lng: centerLng })
-    } else {
-      setMapCenter({ lat: 49.2827, lng: -123.1207 })
-    }
+    setNearestMasjidId(best?.id || null)
   }, [masjids, userLocation])
 
   const handleSelect = (m) => {
@@ -147,7 +136,7 @@ export default function Home() {
               </div>
             )}
           </div>
-          <MapView masjids={masjids} center={mapCenter} userLocation={userLocation} highlightMasjidId={nearestMasjidId} />
+          <MapView masjids={masjids} userLocation={userLocation} highlightMasjidId={nearestMasjidId} />
           <div style={styles.locationNote}>
             Note: Your current location may be slightly offset
             {Number.isFinite(userLocation?.accuracy) ? ` (±${Math.round(userLocation.accuracy)} m)` : ''}.
