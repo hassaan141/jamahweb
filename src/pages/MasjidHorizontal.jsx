@@ -2,8 +2,15 @@
 import { useEffect, useState, useMemo } from "react"
 import { useParams, Link } from "react-router-dom"
 import { fetchDailyPrayerTimes, fetchOrganizationById, fetchMasjids } from "../services/supabase/api"
+import { clearPrayerTimeCache } from "../services/supabase/cache"
 import PrayerTimesHorizontal from "../components/PrayerTimesHorizontal"
 import moment from "moment-hijri"
+
+// Helper to get today's date string (YYYY-MM-DD) for comparison
+function getTodayString() {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 
 export default function MasjidHorizontal() {
     const { slug } = useParams()
@@ -13,6 +20,8 @@ export default function MasjidHorizontal() {
     const [prayerTimes, setPrayerTimes] = useState(null)
     const [loading, setLoading] = useState(true)
     const [tick, setTick] = useState(0)
+    // Track today's date as state so it updates daily
+    const [todayStr, setTodayStr] = useState(getTodayString)
 
     // Clock timer
     useEffect(() => {
@@ -26,8 +35,11 @@ export default function MasjidHorizontal() {
         return () => clearInterval(iv)
     }, [])
 
-    // Always fetch today's prayer times for TV display
-    const selectedDate = useMemo(() => new Date(), [])
+    // Derive selectedDate from todayStr state (updates when todayStr changes)
+    const selectedDate = useMemo(() => {
+        const [y, m, d] = todayStr.split('-').map(Number)
+        return new Date(y, m - 1, d)
+    }, [todayStr])
 
     // Resolve org by slug
     useEffect(() => {
@@ -84,22 +96,29 @@ export default function MasjidHorizontal() {
         return () => { active = false }
     }, [orgId, selectedDate])
 
-    // Auto-refresh prayer times at midnight
+    // Auto-refresh prayer times at 1:00 AM (after GitLab action updates DB ~12:35 AM)
     useEffect(() => {
-        function msUntilMidnight() {
+        function msUntil1AM() {
             const now = new Date()
             const target = new Date(now)
-            target.setHours(24, 0, 10, 0) // 12:00:10 AM next day
+            target.setHours(1, 0, 0, 0) // 1:00 AM
+
+            // If we've already passed 1:00 AM today, target tomorrow's 1:00 AM
+            if (now >= target) {
+                target.setDate(target.getDate() + 1)
+            }
+
             return target.getTime() - now.getTime()
         }
 
         function scheduleRefresh() {
-            const delay = msUntilMidnight()
+            const delay = msUntil1AM()
             return setTimeout(() => {
-                // Force re-fetch by clearing prayer times
-                setPrayerTimes(null)
-                setLoading(true)
-                // Schedule next refresh
+                // Clear cache to force fresh data from database
+                clearPrayerTimeCache()
+                // Update date state - this triggers re-fetch via dependency
+                setTodayStr(getTodayString())
+                // Schedule next day's refresh
                 scheduleRefresh()
             }, delay)
         }
@@ -165,6 +184,7 @@ export default function MasjidHorizontal() {
         }
 
         return null
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [prayerTimes, tick])  // tick MUST be here to recalculate every second!
 
     function formatCountdown(diffMs) {
@@ -182,44 +202,87 @@ export default function MasjidHorizontal() {
 
     const diffMs = nextPrayer ? nextPrayer.at.diff(moment()) : 0
 
+    // Get Hijri date
+    const hijriDate = moment().format('iD iMMMM iYYYY')
+
     if (loading) {
         return (
             <div style={styles.loadingScreen}>
-                <div style={styles.loadingSpinner}></div>
-                <p style={styles.loadingText}>Loading Prayer Times...</p>
+                <div style={styles.loadingContent}>
+                    <div style={styles.loadingSpinner}></div>
+                    <p style={styles.loadingText}>Loading Prayer Times...</p>
+                </div>
             </div>
         )
     }
 
     return (
         <div style={styles.pageWrapper}>
+            {/* Decorative background pattern */}
+            <div style={styles.bgPattern} />
+
             {/* Header */}
             <header style={styles.header}>
-                <div style={styles.headerLeft}>
-                    <div>
-                        <h1 style={styles.brandName}>{org?.name}</h1>
-                        <p style={styles.brandAddress}>{org?.address}</p>
+                <div style={styles.headerContent}>
+                    <div style={styles.headerLeft}>
+                        {/* Mosque icon */}
+                        <div style={styles.logoContainer}>
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                <path d="M12 3L2 12h3v9h14v-9h3L12 3z" strokeLinecap="round" strokeLinejoin="round" />
+                                <path d="M12 7a2 2 0 100 4 2 2 0 000-4z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h1 style={styles.brandName}>{org?.name}</h1>
+                            <p style={styles.brandAddress}>{org?.address}</p>
+                        </div>
                     </div>
-                </div>
-                <div style={styles.clockContainer}>
-                    <div style={styles.time}>{currentTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
-                    <div style={styles.date}>
-                        {currentTime.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })}
+                    <div style={styles.clockContainer}>
+                        <div style={styles.time}>
+                            {currentTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            <span style={styles.seconds}>
+                                :{String(currentTime.getSeconds()).padStart(2, '0')}
+                            </span>
+                        </div>
+                        <div style={styles.dateContainer}>
+                            <div style={styles.gregorianDate}>
+                                {currentTime.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+                            </div>
+                            <div style={styles.hijriDate}>{hijriDate} AH</div>
+                        </div>
                     </div>
                 </div>
             </header>
 
             {/* Main Content */}
             <main style={styles.mainContent}>
-                {/* Next Prayer Banner - Integrated */}
+                {/* Next Prayer Banner */}
                 {nextPrayer && (
                     <div style={styles.nextPrayerBanner}>
-                        <div style={styles.nextPrayerLeft}>
-                            <span style={styles.nextPrayerLabel}>{nextPrayer.label} in</span>
-                            <span style={styles.nextPrayerTime}>{nextPrayer.at.format("h:mm A")}</span>
-                        </div>
-                        <div style={styles.countdownContainer}>
-                            <span style={styles.countdownValue}>{formatCountdown(diffMs)}</span>
+                        <div style={styles.bannerGlow} />
+                        <div style={styles.nextPrayerContent}>
+                            <div style={styles.nextPrayerLeft}>
+                                <div style={styles.nextPrayerIcon}>
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <polyline points="12 6 12 12 16 14" />
+                                    </svg>
+                                </div>
+                                <div style={styles.nextPrayerInfo}>
+                                    <span style={styles.nextPrayerLabel}>NEXT PRAYER</span>
+                                    <span style={styles.nextPrayerName}>{nextPrayer.label}</span>
+                                </div>
+                            </div>
+                            <div style={styles.countdownSection}>
+                                <div style={styles.countdownBox}>
+                                    <span style={styles.countdownLabel}>TIME REMAINING</span>
+                                    <span style={styles.countdownValue}>{formatCountdown(diffMs)}</span>
+                                </div>
+                                <div style={styles.atTimeBox}>
+                                    <span style={styles.atTimeLabel}>AT</span>
+                                    <span style={styles.atTimeValue}>{nextPrayer.at.format("h:mm A")}</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -232,8 +295,14 @@ export default function MasjidHorizontal() {
 
             {/* Footer */}
             <footer style={styles.footer}>
-                <span style={styles.footerText}>TV Display Mode</span>
+                <div style={styles.footerLeft}>
+                    <span style={styles.footerBadge}>TV DISPLAY</span>
+                    <span style={styles.footerText}>Auto-updates daily at 1:00 AM</span>
+                </div>
                 <Link to={`/masjid/${slug}`} style={styles.backBtn}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7" />
+                    </svg>
                     Exit TV Mode
                 </Link>
             </footer>
@@ -244,132 +313,235 @@ export default function MasjidHorizontal() {
 const styles = {
     pageWrapper: {
         minHeight: "100vh",
-        background: "#f8faf9",
+        background: "linear-gradient(180deg, #f0fdf4 0%, #ecfdf5 30%, #f8fafc 100%)",
         display: "flex",
         flexDirection: "column",
+        position: "relative",
+        overflow: "hidden",
+    },
+
+    bgPattern: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundImage: `
+            radial-gradient(circle at 20% 80%, rgba(22, 163, 74, 0.03) 0%, transparent 50%),
+            radial-gradient(circle at 80% 20%, rgba(22, 163, 74, 0.03) 0%, transparent 50%),
+            radial-gradient(circle at 50% 50%, rgba(22, 163, 74, 0.02) 0%, transparent 70%)
+        `,
+        pointerEvents: "none",
     },
 
     loadingScreen: {
         minHeight: "100vh",
         display: "flex",
-        flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        background: "#f8faf9",
+        background: "linear-gradient(180deg, #f0fdf4 0%, #f8fafc 100%)",
+    },
+    loadingContent: {
+        textAlign: "center",
     },
     loadingSpinner: {
-        width: "48px",
-        height: "48px",
-        border: "4px solid #e2e8f0",
-        borderTopColor: "#166534",
+        width: "56px",
+        height: "56px",
+        border: "4px solid #dcfce7",
+        borderTopColor: "#16a34a",
         borderRadius: "50%",
-        animation: "spin 1s linear infinite",
+        animation: "spin 0.8s linear infinite",
+        margin: "0 auto",
     },
     loadingText: {
-        marginTop: "16px",
+        marginTop: "20px",
         fontSize: "18px",
-        color: "#64748b",
-        fontWeight: "500",
+        color: "#166534",
+        fontWeight: "600",
+        letterSpacing: "0.02em",
     },
 
     header: {
-        background: "#166534",
+        background: "linear-gradient(135deg, #166534 0%, #15803d 50%, #16a34a 100%)",
+        padding: "0",
+        color: "white",
+        position: "relative",
+        boxShadow: "0 4px 20px rgba(22, 101, 52, 0.25)",
+    },
+    headerContent: {
         padding: "28px 48px",
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        color: "white",
     },
     headerLeft: {
         display: "flex",
         alignItems: "center",
-        gap: "16px",
+        gap: "20px",
+    },
+    logoContainer: {
+        width: "64px",
+        height: "64px",
+        borderRadius: "16px",
+        background: "rgba(255,255,255,0.15)",
+        backdropFilter: "blur(8px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        border: "1px solid rgba(255,255,255,0.2)",
     },
     brandName: {
-        fontSize: "28px",
+        fontSize: "32px",
         margin: 0,
-        fontWeight: "700",
+        fontWeight: "800",
+        letterSpacing: "-0.02em",
+        textShadow: "0 2px 4px rgba(0,0,0,0.1)",
     },
     brandAddress: {
-        fontSize: "14px",
-        margin: "4px 0 0",
-        opacity: 0.85,
+        fontSize: "15px",
+        margin: "6px 0 0",
+        opacity: 0.9,
+        fontWeight: "500",
     },
     clockContainer: {
         textAlign: "right",
     },
     time: {
-        fontSize: "48px",
-        fontWeight: "700",
+        fontSize: "64px",
+        fontWeight: "800",
         lineHeight: 1,
         fontVariantNumeric: "tabular-nums",
+        letterSpacing: "-0.02em",
+        textShadow: "0 2px 8px rgba(0,0,0,0.15)",
     },
-    date: {
+    seconds: {
+        fontSize: "32px",
+        fontWeight: "600",
+        opacity: 0.7,
+    },
+    dateContainer: {
+        marginTop: "8px",
+    },
+    gregorianDate: {
+        fontSize: "15px",
+        opacity: 0.95,
+        fontWeight: "500",
+    },
+    hijriDate: {
         fontSize: "14px",
-        opacity: 0.85,
-        marginTop: "4px",
+        opacity: 0.8,
+        marginTop: "2px",
+        fontStyle: "italic",
     },
 
     mainContent: {
         flex: 1,
-        padding: "32px 48px",
+        padding: "40px 48px",
         display: "flex",
         flexDirection: "column",
-        gap: "32px",
+        gap: "36px",
+        position: "relative",
+        zIndex: 1,
     },
 
     nextPrayerBanner: {
-        background: "white",
-        borderRadius: "16px",
-        padding: "24px 32px",
+        background: "linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)",
+        borderRadius: "24px",
+        padding: "0",
+        boxShadow: "0 4px 24px rgba(22, 163, 74, 0.12), 0 1px 3px rgba(0,0,0,0.04)",
+        border: "1px solid rgba(22, 163, 74, 0.15)",
+        position: "relative",
+        overflow: "hidden",
+    },
+    bannerGlow: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        height: "4px",
+        background: "linear-gradient(90deg, #16a34a 0%, #22c55e 50%, #16a34a 100%)",
+    },
+    nextPrayerContent: {
+        padding: "28px 36px",
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-        border: "1px solid #e5e7eb",
     },
     nextPrayerLeft: {
         display: "flex",
         alignItems: "center",
-        gap: "24px",
+        gap: "20px",
+    },
+    nextPrayerIcon: {
+        width: "52px",
+        height: "52px",
+        borderRadius: "14px",
+        background: "linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "#166534",
+    },
+    nextPrayerInfo: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "4px",
     },
     nextPrayerLabel: {
         fontSize: "12px",
-        fontWeight: "600",
-        textTransform: "uppercase",
-        color: "#6b7280",
-        letterSpacing: "0.05em",
+        fontWeight: "700",
+        color: "#16a34a",
+        letterSpacing: "0.1em",
     },
     nextPrayerName: {
-        fontSize: "24px",
-        fontWeight: "700",
+        fontSize: "28px",
+        fontWeight: "800",
         color: "#166534",
+        letterSpacing: "-0.01em",
     },
-    nextPrayerTime: {
-        fontSize: "20px",
-        fontWeight: "600",
-        color: "#374151",
-    },
-    countdownContainer: {
+    countdownSection: {
         display: "flex",
         alignItems: "center",
-        gap: "16px",
-        background: "#f0fdf4",
-        padding: "12px 24px",
-        borderRadius: "12px",
-        border: "1px solid #bbf7d0",
+        gap: "24px",
+    },
+    countdownBox: {
+        background: "linear-gradient(135deg, #166534 0%, #16a34a 100%)",
+        padding: "16px 28px",
+        borderRadius: "16px",
+        textAlign: "center",
+        boxShadow: "0 4px 16px rgba(22, 101, 52, 0.25)",
     },
     countdownLabel: {
-        fontSize: "12px",
-        fontWeight: "600",
-        textTransform: "uppercase",
-        color: "#166534",
-        letterSpacing: "0.05em",
+        display: "block",
+        fontSize: "10px",
+        fontWeight: "700",
+        color: "rgba(255,255,255,0.8)",
+        letterSpacing: "0.12em",
+        marginBottom: "4px",
     },
     countdownValue: {
+        fontSize: "36px",
+        fontWeight: "800",
+        color: "white",
+        fontVariantNumeric: "tabular-nums",
+        letterSpacing: "-0.02em",
+        textShadow: "0 2px 4px rgba(0,0,0,0.1)",
+    },
+    atTimeBox: {
+        textAlign: "center",
+    },
+    atTimeLabel: {
+        display: "block",
+        fontSize: "10px",
+        fontWeight: "700",
+        color: "#9ca3af",
+        letterSpacing: "0.12em",
+        marginBottom: "4px",
+    },
+    atTimeValue: {
         fontSize: "28px",
         fontWeight: "700",
-        color: "#166534",
+        color: "#374151",
         fontVariantNumeric: "tabular-nums",
     },
 
@@ -380,21 +552,46 @@ const styles = {
     },
 
     footer: {
-        padding: "16px 48px",
+        padding: "18px 48px",
         background: "white",
         borderTop: "1px solid #e5e7eb",
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
+        position: "relative",
+        zIndex: 1,
+    },
+    footerLeft: {
+        display: "flex",
+        alignItems: "center",
+        gap: "16px",
+    },
+    footerBadge: {
+        background: "linear-gradient(135deg, #166534 0%, #16a34a 100%)",
+        color: "white",
+        fontSize: "10px",
+        fontWeight: "800",
+        letterSpacing: "0.1em",
+        padding: "6px 12px",
+        borderRadius: "6px",
     },
     footerText: {
         fontSize: "13px",
-        color: "#9ca3af",
+        color: "#6b7280",
     },
     backBtn: {
-        fontSize: "13px",
+        fontSize: "14px",
         color: "#6b7280",
         textDecoration: "none",
+        display: "flex",
+        alignItems: "center",
+        gap: "8px",
+        padding: "10px 18px",
+        borderRadius: "10px",
+        background: "#f9fafb",
+        border: "1px solid #e5e7eb",
+        transition: "all 0.2s ease",
+        fontWeight: "600",
     },
 }
 
@@ -403,6 +600,11 @@ if (typeof document !== "undefined") {
     styleSheet.textContent = `
     @keyframes spin {
       to { transform: rotate(360deg); }
+    }
+    a[style*="backBtn"]:hover {
+      background: #f3f4f6 !important;
+      border-color: #d1d5db !important;
+      color: #374151 !important;
     }
   `
     if (!document.head.querySelector("style[data-masjid-horizontal-styles]")) {

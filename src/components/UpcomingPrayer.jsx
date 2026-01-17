@@ -10,9 +10,9 @@ export default function UpcomingPrayer({ prayerTimes, align = 'center', onDateCh
   useEffect(() => {
     const iv = setInterval(() => {
       setTick((t) => t + 1)
-      // Auto-refresh prayer times at midnight
+      // Auto-refresh prayer times at 1:00 AM (after GitLab action updates DB ~12:35 AM)
       const now = moment()
-      if (onDateChange && now.hour() === 0 && now.minute() === 0 && now.second() < 2) {
+      if (onDateChange && now.hour() === 1 && now.minute() === 0 && now.second() < 2) {
         onDateChange(now.format('YYYY-MM-DD'))
       }
     }, 1000)
@@ -80,6 +80,7 @@ export default function UpcomingPrayer({ prayerTimes, align = 'center', onDateCh
     }
 
     return null
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prayerTimes, tick])  // tick MUST be here to recalculate every second!
 
   function formatCountdown(diffMs) {

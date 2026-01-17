@@ -12,6 +12,12 @@ import Footer from "../components/Footer"
 import ActionButtons from "../components/ActionButtons"
 import Amenities from "../components/Amenities"
 
+// Helper to get today's date string (YYYY-MM-DD) for comparison
+function getTodayString() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export default function Masjid() {
   const { slug } = useParams()
   const [prayerTimes, setPrayerTimes] = useState(null)
@@ -22,6 +28,8 @@ export default function Masjid() {
   const [orgId, setOrgId] = useState(null)
   const [prayerLoading, setPrayerLoading] = useState(false)
   const [error, setError] = useState(null)
+  // Track today's date as state so it updates daily
+  const [todayStr, setTodayStr] = useState(getTodayString)
 
   // small slug -> id resolution helper
   function slugify(str) {
@@ -43,22 +51,25 @@ export default function Masjid() {
   // Helper to produce YYYY-MM-DD (local)
   // toYMD removed (unused)
 
+  // Derive selectedDate from todayStr state (updates when todayStr changes or dayChoice toggles)
   const selectedDate = useMemo(() => {
-    const today = new Date()
-    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
-    return dayChoice === 'today' ? today : tomorrow
-  }, [dayChoice])
+    const [y, m, d] = todayStr.split('-').map(Number)
+    const today = new Date(y, m - 1, d)
+    if (dayChoice === 'today') return today
+    const tomorrow = new Date(today)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    return tomorrow
+  }, [todayStr, dayChoice])
 
-  // Auto-refresh prayer times after midnight
+  // Auto-refresh prayer times at 1:00 AM (after GitLab action updates DB ~12:35 AM)
   useEffect(() => {
-    // Calculate milliseconds until 12:10 AM
-    function msUntilMidnightRefresh() {
+    function msUntil1AM() {
       const now = new Date()
       const target = new Date(now)
-      target.setHours(0, 10, 0, 0) // 12:10 AM
+      target.setHours(1, 0, 0, 0) // 1:00 AM
 
-      // If we've already passed 12:10 AM today, target tomorrow's 12:10 AM
-      if (now > target) {
+      // If we've already passed 1:00 AM today, target tomorrow's 1:00 AM
+      if (now >= target) {
         target.setDate(target.getDate() + 1)
       }
 
@@ -66,17 +77,13 @@ export default function Masjid() {
     }
 
     function scheduleNextRefresh() {
-      const delay = msUntilMidnightRefresh()
+      const delay = msUntil1AM()
 
       return setTimeout(() => {
-        if (dayChoice === 'today') {
-          // Clear all prayer time caches to force fresh data from database
-          clearPrayerTimeCache()
-          // Clear prayer times to trigger re-fetch (avoids full page reload)
-          setPrayerTimes(null)
-          setComparePrayerTimes(null)
-        }
-
+        // Clear all prayer time caches to force fresh data from database
+        clearPrayerTimeCache()
+        // Update date state - this triggers re-fetch via dependency change
+        setTodayStr(getTodayString())
         // Schedule next day's refresh
         scheduleNextRefresh()
       }, delay)
@@ -84,7 +91,7 @@ export default function Masjid() {
 
     const timeoutId = scheduleNextRefresh()
     return () => clearTimeout(timeoutId)
-  }, [dayChoice])
+  }, [])
 
   // Initial load: resolve org by slug and fetch org details
   useEffect(() => {

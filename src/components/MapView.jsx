@@ -104,41 +104,34 @@ export default function MapView({ masjids = [], center, userLocation, highlightM
   )
 }
 
-// 3. Updated Controller to handle "Pin Disappearing" and centering logic
 function MapController({ center, userLocation, zoom }) {
   const map = useMap()
   const userInteracted = useRef(false)
 
   useEffect(() => {
-    // If the user drags/pans manually, we stop auto-recentering to avoid annoying them
-    const onMoveStart = (e) => {
-      // 'movestart' fires on zoom too, but we only want to stop tracking if it's a "drag"
-      // or explicit interaction. Leaflet doesn't distinguish easily, so we usually 
-      // check if the move was caused by a script or user.
-      // For now, we simple assume if it wasn't a flyTo/setView call, it's user interaction.
-      if (e && e.target && e.target._moveStartType === 'drag') {
-         userInteracted.current = true
-      }
+    // Handler to detect when user manually drags the map
+    const handleDrag = () => {
+      userInteracted.current = true
     }
     
-    map.on('dragstart', () => { userInteracted.current = true })
-    
+    // which would break the centering logic unnecessarily.
+    map.on('dragstart', handleDrag)
+
+    // Cleanup listener on unmount
     return () => {
-      map.off('dragstart')
+      map.off('dragstart', handleDrag)
     }
   }, [map])
 
   useEffect(() => {
-    // If we have a user location, we prioritize that view
     if (userLocation) {
-        // If the user hasn't dragged the map away manually, keep centering on them
-        if (!userInteracted.current) {
-            map.flyTo([userLocation.lat, userLocation.lng], zoom)
-        }
+      // If user hasn't dragged away, keep the map centered on them
+      if (!userInteracted.current) {
+        map.flyTo([userLocation.lat, userLocation.lng], zoom)
+      }
     } else {
-        // Fallback: Just go to the provided center (e.g. city center)
-        // We use setView here for instant jump on load
-        map.setView([center.lat, center.lng], zoom)
+      // Fallback center (instant jump)
+      map.setView([center.lat, center.lng], zoom)
     }
   }, [userLocation, center, zoom, map])
 
