@@ -9,6 +9,8 @@ import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png"
 import markerIcon from "leaflet/dist/images/marker-icon.png"
 import markerShadow from "leaflet/dist/images/marker-shadow.png"
 
+// Apply icon fix immediately
+delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: markerIcon2x,
   iconUrl: markerIcon,
@@ -23,6 +25,11 @@ const masjidIcon = new L.Icon({
   popupAnchor: [0, -41],
 })
 
+// 1. Define your fallback center here (e.g., London, NY, or your specific city)
+// This fulfills the "center in lat long I provide" requirement.
+const DEFAULT_CENTER = { lat: 51.505, lng: -0.09 } // Change these to your default coordinates
+const DEFAULT_ZOOM = 13 // Zoom 13 is roughly a 10km radius view
+
 export default function MapView({ masjids = [], center, userLocation, highlightMasjidId }) {
   const normalized = (masjids || []).map((m) => ({
     ...m,
@@ -30,59 +37,49 @@ export default function MapView({ masjids = [], center, userLocation, highlightM
     longitude: typeof m.longitude === "string" ? Number.parseFloat(m.longitude) : m.longitude,
   }))
 
-  // Import hard-coded masjid entries from data.json
   const combined = [...normalized, ...hardcodedData]
   const valid = combined.filter((m) => Number.isFinite(m.latitude) && Number.isFinite(m.longitude))
 
-  if (process.env.NODE_ENV !== "production") {
-    const invalid = normalized.filter((m) => !Number.isFinite(m.latitude) || !Number.isFinite(m.longitude))
-    if (invalid.length) {
-      // eslint-disable-next-line no-console
-      console.warn(
-        "Filtered masjids without valid coordinates:",
-        invalid.map((m) => ({ id: m.id, name: m.name, latitude: m.latitude, longitude: m.longitude })),
-      )
-    }
-  }
-
-  if (valid.length === 0) {
-    return (
-      <div style={styles.empty}>
-        <div style={styles.emptyText}>No locations to display</div>
-      </div>
-    )
-  }
-
-  const fallbackLat = valid.reduce((s, m) => s + m.latitude, 0) / valid.length
-  const fallbackLng = valid.reduce((s, m) => s + m.longitude, 0) / valid.length
-  const centerLat = center?.lat ?? fallbackLat
-  const centerLng = center?.lng ?? fallbackLng
+  // 2. Determine the Map Center priority: User > Provided Prop > Hardcoded Default
+  const mapCenterLat = userLocation?.lat ?? center?.lat ?? DEFAULT_CENTER.lat
+  const mapCenterLng = userLocation?.lng ?? center?.lng ?? DEFAULT_CENTER.lng
+  
+  // If we are using the fallback (no user location), we ensure the zoom is set to the 10km radius level
+  const zoomLevel = DEFAULT_ZOOM
 
   return (
     <div style={styles.container} className="map-wrap">
-      <MapContainer center={[centerLat, centerLng]} zoom={13} style={styles.map} scrollWheelZoom>
-        <Recenter center={[centerLat, centerLng]} />
+      <MapContainer 
+        center={[mapCenterLat, mapCenterLng]} 
+        zoom={zoomLevel} 
+        style={styles.map} 
+        scrollWheelZoom
+      >
+        <MapController 
+          center={{ lat: mapCenterLat, lng: mapCenterLng }} 
+          userLocation={userLocation} 
+          zoom={zoomLevel}
+        />
+        
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution="&copy; OpenStreetMap contributors"
         />
+
+        {/* User Location Pin */}
         {userLocation && (
-          <Marker position={[userLocation.lat, userLocation.lng]}>
+          <Marker position={[userLocation.lat, userLocation.lng]} zIndexOffset={1000}>
             <Popup>
-              <div>
-                <strong>Your location</strong>
-              </div>
+              <div><strong>Your location</strong></div>
             </Popup>
           </Marker>
         )}
+
+        {/* Masjid Markers */}
         {valid.map((m) => {
-          const slug = String(m.name || m.id)
-            .toLowerCase()
-            .trim()
-            .replace(/\s+/g, '-')
-            .replace(/[^a-z0-9-]/g, '')
-            .replace(/-+/g, '-')
+          const slug = String(m.name || m.id).toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-')
           const href = m.externalUrl ? m.externalUrl : `/masjid/${slug}`
+          
           return (
             <Marker key={m.id} position={[m.latitude, m.longitude]} icon={masjidIcon}>
               <Popup>
@@ -107,24 +104,46 @@ export default function MapView({ masjids = [], center, userLocation, highlightM
   )
 }
 
-function Recenter({ center }) {
+// 3. Updated Controller to handle "Pin Disappearing" and centering logic
+function MapController({ center, userLocation, zoom }) {
   const map = useMap()
-  const userMoved = useRef(false)
+  const userInteracted = useRef(false)
 
   useEffect(() => {
-    map.on('movestart', () => {
-      userMoved.current = true
-    })
+    // If the user drags/pans manually, we stop auto-recentering to avoid annoying them
+    const onMoveStart = (e) => {
+      // 'movestart' fires on zoom too, but we only want to stop tracking if it's a "drag"
+      // or explicit interaction. Leaflet doesn't distinguish easily, so we usually 
+      // check if the move was caused by a script or user.
+      // For now, we simple assume if it wasn't a flyTo/setView call, it's user interaction.
+      if (e && e.target && e.target._moveStartType === 'drag') {
+         userInteracted.current = true
+      }
+    }
+    
+    map.on('dragstart', () => { userInteracted.current = true })
+    
+    return () => {
+      map.off('dragstart')
+    }
   }, [map])
 
   useEffect(() => {
-    if (userMoved.current) return
-    map.setView(center)
-  }, [center, map])
+    // If we have a user location, we prioritize that view
+    if (userLocation) {
+        // If the user hasn't dragged the map away manually, keep centering on them
+        if (!userInteracted.current) {
+            map.flyTo([userLocation.lat, userLocation.lng], zoom)
+        }
+    } else {
+        // Fallback: Just go to the provided center (e.g. city center)
+        // We use setView here for instant jump on load
+        map.setView([center.lat, center.lng], zoom)
+    }
+  }, [userLocation, center, zoom, map])
 
   return null
 }
-
 
 const styles = {
   container: {
@@ -137,6 +156,7 @@ const styles = {
     boxShadow: "0 2px 12px rgba(0, 0, 0, 0.08)",
     border: "1px solid #f3f4f6",
     background: "white",
+    zIndex: 0, // Ensure map is below overlays
   },
   map: {
     width: "100%",
