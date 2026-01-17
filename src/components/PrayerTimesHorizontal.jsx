@@ -5,6 +5,7 @@ import moment from "moment-hijri"
 const prayerIcons = {
   fajr: "M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z",
   sunrise: "M12 3v2m0 14v2m9-9h-2M5 12H3m15.364 6.364l-1.414-1.414M7.05 7.05L5.636 5.636m12.728 0l-1.414 1.414M7.05 16.95l-1.414 1.414M12 8a4 4 0 100 8 4 4 0 000-8z",
+  zawal: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z",
   dhuhr: "M12 3v1m0 16v1m9-9h-1M4 12H3m3.343-5.657L5.636 5.636m12.728 0l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z",
   asr: "M12 3v1m0 16v1m9-9h-1M4 12H3M17.657 6.343l.707-.707M5.636 18.364l.707-.707m0-12.021l-.707-.707m12.728 12.728l.707.707M12 7a5 5 0 100 10 5 5 0 000-10z",
   maghrib: "M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z",
@@ -36,8 +37,21 @@ export default function PrayerTimesHorizontal({ prayerTimes, nextPrayerName = nu
     { key: "maghrib", name: "Maghrib", azanKey: "maghrib_azan", iqamahKey: "maghrib_iqamah" },
     { key: "isha", name: "Isha", azanKey: "isha_azan", iqamahKey: "isha_iqamah" },
   ]
+  const jummahKeys = [
+    { key: "jumah_time_1", label: "Jummah 1" },
+    { key: "jumah_time_2", label: "Jummah 2" },
+    { key: "jumah_time_3", label: "Jummah 3" },
+  ]
+  const jummahSlots = jummahKeys
+    .map(({ key, label }) => {
+      const rawTime = prayerTimes[key]
+      const formatted = formatTime(rawTime)
+      if (!formatted || formatted === "-") return null
+      return { key, label, time: formatted }
+    })
+    .filter(Boolean)
 
-  const prayers = prayerKeys
+  let prayers = prayerKeys
     .map(({ key, name, azanKey, iqamahKey, showIqamah = true }) => {
       const azan = prayerTimes[azanKey]
       const iqamah = showIqamah ? prayerTimes[iqamahKey] : null
@@ -54,101 +68,147 @@ export default function PrayerTimesHorizontal({ prayerTimes, nextPrayerName = nu
     })
     .filter((p) => p.adhan !== "-")
 
+  // Insert zawal after sunrise if present
+  if (prayerTimes.zawal && prayerTimes.zawal !== "-") {
+    const sunriseIdx = prayers.findIndex((p) => p.key === "sunrise")
+    if (sunriseIdx !== -1) {
+      prayers.splice(sunriseIdx + 1, 0, {
+        key: "zawal",
+        name: "Zawal",
+        adhan: formatTime(prayerTimes.zawal),
+        iqamah: null,
+        showIqamah: false,
+        isNext: false,
+      })
+    }
+  }
+
   return (
-    <div style={styles.gridContainer}>
-      {prayers.map((prayer, index) => (
-        <div
-          key={prayer.key}
-          style={{
-            ...styles.prayerCard,
-            ...(prayer.isNext ? styles.prayerCardActive : {}),
-            animationDelay: `${index * 0.1}s`,
-          }}
-        >
-          {/* Decorative top accent */}
-          <div style={{
-            ...styles.topAccent,
-            ...(prayer.isNext ? styles.topAccentActive : {}),
-          }} />
+    <div style={styles.wrapper}>
+      <div style={styles.gridContainer}>
+        {prayers.map((prayer, index) => (
+          <div
+            key={prayer.key}
+            style={{
+              ...styles.prayerCard,
+              ...(prayer.isNext ? styles.prayerCardActive : {}),
+              animationDelay: `${index * 0.1}s`,
+            }}
+          >
+            {/* Decorative top accent */}
+            <div style={{
+              ...styles.topAccent,
+              ...(prayer.isNext ? styles.topAccentActive : {}),
+            }} />
 
-          {/* Icon */}
-          <div style={{
-            ...styles.iconContainer,
-            ...(prayer.isNext ? styles.iconContainerActive : {}),
-          }}>
-            <svg
-              width="28"
-              height="28"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d={prayerIcons[prayer.key]} />
-            </svg>
-          </div>
-
-          {/* Prayer Name */}
-          <div style={{
-            ...styles.prayerTitle,
-            ...(prayer.isNext ? styles.prayerTitleActive : {}),
-          }}>
-            {prayer.name}
-          </div>
-
-          {/* Divider */}
-          <div style={{
-            ...styles.divider,
-            ...(prayer.isNext ? styles.dividerActive : {}),
-          }} />
-
-          {/* Times */}
-          <div style={styles.timesContainer}>
-            <div style={styles.timeRow}>
-              <span style={{
-                ...styles.timeLabel,
-                ...(prayer.isNext ? styles.timeLabelActive : {}),
-              }}>ADHAN</span>
-              <span style={{
-                ...styles.timeValue,
-                ...(prayer.isNext ? styles.timeValueActive : {}),
-              }}>
-                {prayer.adhan}
-              </span>
+            {/* Icon */}
+            <div style={{
+              ...styles.iconContainer,
+              ...(prayer.isNext ? styles.iconContainerActive : {}),
+            }}>
+              <svg
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d={prayerIcons[prayer.key]} />
+              </svg>
             </div>
 
-            {prayer.showIqamah && prayer.iqamah && (
+            {/* Prayer Name */}
+            <div style={{
+              ...styles.prayerTitle,
+              ...(prayer.isNext ? styles.prayerTitleActive : {}),
+            }}>
+              {prayer.name}
+            </div>
+
+            {/* Divider */}
+            <div style={{
+              ...styles.divider,
+              ...(prayer.isNext ? styles.dividerActive : {}),
+            }} />
+
+            {/* Times */}
+            <div style={styles.timesContainer}>
               <div style={styles.timeRow}>
                 <span style={{
                   ...styles.timeLabel,
                   ...(prayer.isNext ? styles.timeLabelActive : {}),
-                }}>IQAMAH</span>
+                }}>ADHAN</span>
                 <span style={{
                   ...styles.timeValue,
                   ...(prayer.isNext ? styles.timeValueActive : {}),
                 }}>
-                  {prayer.iqamah}
+                  {prayer.adhan}
                 </span>
+              </div>
+
+              {prayer.showIqamah && prayer.iqamah && (
+                <div style={styles.timeRow}>
+                  <span style={{
+                    ...styles.timeLabel,
+                    ...(prayer.isNext ? styles.timeLabelActive : {}),
+                  }}>IQAMAH</span>
+                  <span style={{
+                    ...styles.timeValue,
+                    ...(prayer.isNext ? styles.timeValueActive : {}),
+                  }}>
+                    {prayer.iqamah}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Next prayer indicator */}
+            {prayer.isNext && (
+              <div style={styles.nextBadge}>
+                <span style={styles.pulsingDot} />
+                NEXT
               </div>
             )}
           </div>
+        ))}
+      </div>
 
-          {/* Next prayer indicator */}
-          {prayer.isNext && (
-            <div style={styles.nextBadge}>
-              <span style={styles.pulsingDot} />
-              NEXT
-            </div>
-          )}
+      {jummahSlots.length > 0 && (
+        <div style={styles.jummahWrapper}>
+          <div style={styles.jummahHeader}>
+            <span style={styles.jummahTitle}>Jummah Timings</span>
+            <span style={styles.jummahSubtitle}>Plan for multiple congregations</span>
+          </div>
+          <div style={styles.jummahGrid}>
+            {jummahSlots.map((slot, idx) => (
+              <div
+                key={slot.key}
+                style={{
+                  ...styles.jummahCard,
+                  ...(idx === 0 ? styles.jummahCardPrimary : {}),
+                }}
+              >
+                <div style={styles.jummahLabel}>{slot.label}</div>
+                <div style={styles.jummahTime}>{slot.time}</div>
+              </div>
+            ))}
+          </div>
         </div>
-      ))}
+      )}
     </div>
   )
 }
 
 const styles = {
+  wrapper: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "28px",
+    width: "100%",
+  },
   gridContainer: {
     display: "flex",
     gap: "20px",
@@ -293,6 +353,66 @@ const styles = {
     borderRadius: "50%",
     background: "#4ade80",
     animation: "pulse 2s infinite",
+  },
+  jummahWrapper: {
+    padding: "18px",
+    borderRadius: "24px",
+    background: "linear-gradient(180deg, rgba(16, 185, 129, 0.08), rgba(255,255,255,0.6))",
+    border: "1px solid rgba(16, 185, 129, 0.2)",
+  },
+  jummahHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "14px",
+    gap: "12px",
+  },
+  jummahTitle: {
+    fontSize: "14px",
+    letterSpacing: "0.2em",
+    textTransform: "uppercase",
+    color: "#059669",
+    fontWeight: "700",
+  },
+  jummahSubtitle: {
+    fontSize: "12px",
+    color: "#0f766e",
+    opacity: 0.9,
+  },
+  jummahGrid: {
+    display: "flex",
+    gap: "12px",
+    flexWrap: "wrap",
+  },
+  jummahCard: {
+    flex: "1 1 120px",
+    minWidth: "120px",
+    borderRadius: "18px",
+    padding: "14px 18px",
+    background: "white",
+    border: "1px solid rgba(5, 150, 105, 0.2)",
+    boxShadow: "0 6px 16px rgba(5, 150, 105, 0.08)",
+    display: "flex",
+    flexDirection: "column",
+    gap: "6px",
+    minHeight: "80px",
+    justifyContent: "center",
+  },
+  jummahCardPrimary: {
+    borderColor: "#059669",
+    boxShadow: "0 10px 30px rgba(5, 150, 105, 0.25)",
+  },
+  jummahLabel: {
+    fontSize: "12px",
+    letterSpacing: "0.3em",
+    textTransform: "uppercase",
+    fontWeight: "700",
+    color: "#059669",
+  },
+  jummahTime: {
+    fontSize: "26px",
+    fontWeight: "800",
+    color: "#0f766e",
   },
 }
 
