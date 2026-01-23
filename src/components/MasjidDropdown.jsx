@@ -56,7 +56,7 @@ export default function MasjidDropdown({ masjids = [], selectedMasjid, onSelect 
             // If it has an external URL, navigate to it (with security validation)
             if (m && m.externalUrl) {
               if (isValidExternalUrl(m.externalUrl)) {
-                window.open(m.externalUrl, '_blank', 'noopener,noreferrer')
+                window.location.href = m.externalUrl
               } else {
                 console.error('[MasjidDropdown] Invalid external URL blocked:', m.externalUrl)
                 // Fallback to normal selection if URL is invalid
