@@ -3,6 +3,7 @@
 
 import { Link } from "react-router-dom"
 import { useState, useEffect, useRef } from 'react'
+import { FaApple, FaGooglePlay } from "react-icons/fa"
 import moment from "moment-hijri"
 import { ANDROID_STORE_URL, IOS_STORE_URL } from "../constants/appLinks"
 
@@ -145,7 +146,7 @@ export default function Header({
               className="header-menu-item"
               onClick={() => setMenuOpen(false)}
             >
-              <span>iOS</span>
+              <FaApple aria-hidden />
               <span>Download for iOS</span>
             </a>
             <a
@@ -155,7 +156,7 @@ export default function Header({
               className="header-menu-item"
               onClick={() => setMenuOpen(false)}
             >
-              <span>GP</span>
+              <FaGooglePlay aria-hidden />
               <span>Download for Android</span>
             </a>
           </div>
