@@ -106,12 +106,12 @@ export default function UpcomingPrayer({ prayerTimes, align = 'center', onDateCh
   }
 
   return (
-    <div style={cardStyle}>
-      <div style={styles.upLeft}>
+    <div style={cardStyle} className="upcoming-prayer-card">
+      <div style={styles.upLeft} className="upcoming-prayer-left">
         <span style={styles.upLead}>{next.label} in</span>
         <span style={styles.upCountdown}>{formatCountdown(diffMs)}</span>
       </div>
-      <div style={styles.upRight}>
+      <div style={styles.upRight} className="upcoming-prayer-right">
         <span style={styles.upTime}>{next.at.format('h:mm A')}</span>
       </div>
     </div>
@@ -131,6 +131,7 @@ const styles = {
     alignItems: 'center',
     columnGap: 12,
     boxShadow: '0 2px 8px rgba(5,150,105,0.06)',
+    boxSizing: 'border-box',
   },
   upLeft: { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 },
   upLead: { fontSize: 14, fontWeight: 700, color: '#065f46', letterSpacing: '0.01em' },
@@ -154,4 +155,27 @@ const styles = {
   },
   dot: { color: '#059669', opacity: 0.75 },
   // upTomorrow removed (no longer displayed)
+}
+
+if (typeof document !== "undefined") {
+  const styleEl = document.createElement("style")
+  styleEl.textContent = `
+    @media (max-width: 640px) {
+      .upcoming-prayer-card {
+        width: 100% !important;
+        max-width: none !important;
+        margin: 0 0 12px 0 !important;
+        grid-template-columns: 1fr auto !important;
+        border-radius: 8px !important;
+      }
+      .upcoming-prayer-left {
+        min-width: 0 !important;
+        flex-wrap: wrap !important;
+      }
+    }
+  `
+  if (!document.head.querySelector('style[data-upcoming-prayer-styles]')) {
+    styleEl.setAttribute('data-upcoming-prayer-styles', 'true')
+    document.head.appendChild(styleEl)
+  }
 }

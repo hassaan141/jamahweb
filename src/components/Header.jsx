@@ -68,9 +68,9 @@ export default function Header({
     <header style={styles.headerWrapper}>
       <div style={styles.topBar} className="header-topbar">
         <div style={styles.brandSection}>
-          <div style={styles.logoWrap}>
+          <Link to="/" style={styles.logoWrap} aria-label="Go to Awqat home">
             <img src={logoSrc} alt="Logo" style={styles.logo} className="header-logo" />
-          </div>
+          </Link>
           {/* <div style={styles.brandText}> */}
           {/* <div style={styles.brandName}>Awqat</div>
             <div style={styles.brandTag}>Prayer Times</div>
@@ -189,6 +189,7 @@ const styles = {
     border: "2px solid #059669",
     padding: 0,
     overflow: "hidden",
+    textDecoration: "none",
   },
   logo: {
     width: "100%",
@@ -354,7 +355,8 @@ if (typeof document !== "undefined") {
     @media (max-width: 768px) {
       .header-topbar { grid-template-columns: 1fr !important; gap: 10px !important; }
       .header-meta { justify-content: center !important; }
-      .header-back { position: static !important; margin-bottom: 8px !important; }
+      .header-back { position: static !important; margin: 0 auto 8px 0 !important; width: fit-content !important; }
+      .header-hero-inner { display: flex !important; flex-direction: column !important; align-items: stretch !important; }
     }
     @media (max-width: 640px) {
       .header-title { font-size: 18px !important; }
