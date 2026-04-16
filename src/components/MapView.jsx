@@ -127,6 +127,7 @@ function MapController({ userLocation }) {
 
 const styles = {
   container: {
+    position: "relative",
     width: "100%",
     maxWidth: 800,
     margin: "0 auto",
@@ -165,6 +166,9 @@ if (typeof document !== 'undefined') {
   responsive.textContent = `
     @media (max-width: 640px) {
       .map-wrap { height: min(52vh, 360px) !important; border-radius: 12px !important; }
+    }
+    .map-wrap .leaflet-container {
+      z-index: 0 !important;
     }
   `
   if (!document.head.querySelector('style[data-mapview-responsive]')) {

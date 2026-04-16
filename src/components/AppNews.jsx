@@ -160,7 +160,7 @@ const styles = {
   overlay: {
     position: "fixed",
     inset: 0,
-    zIndex: 60,
+    zIndex: 2147483000,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -170,6 +170,8 @@ const styles = {
   },
   modal: {
     position: "relative",
+    zIndex: 1,
+    isolation: "isolate",
     display: "grid",
     gridTemplateColumns: "0.86fr 1fr",
     width: "min(820px, calc(100vw - 40px))",
@@ -434,6 +436,9 @@ if (typeof document !== "undefined") {
   styleEl.textContent = `
     .app-news-modal {
       animation: appNewsModalIn 180ms ease-out;
+    }
+    .app-news-overlay {
+      z-index: 2147483000 !important;
     }
     .app-news-modal a:hover,
     .app-news-modal button:hover {
