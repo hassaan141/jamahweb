@@ -1,273 +1,294 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { ANDROID_STORE_URL, IOS_STORE_URL } from "../constants/appLinks"
 
-const IOS_STORE_URL = "https://apps.apple.com/ca/app/jamaah/id6755858703"
-const ANDROID_STORE_URL = "https://play.google.com/store/apps/details?id=com.hassaan141.jamaahapp"
+const STORAGE_KEY = "jamaah-app-news-dismissed"
 
-const slides = [
-  {
-    title: "Create an account",
-    text: "Set up Jamaah once and keep your masjid experience ready wherever you go.",
-    graphic: "account",
-  },
-  {
-    title: "Turn on notifications and location",
-    text: "Allow location and notifications so Jamaah can send timely prayer alerts.",
-    graphic: "permissions",
-  },
-  {
-    title: "Travel with local adhan alerts",
-    text: "Get adhan notifications from the closest masjids as you move through the day.",
-    graphic: "travel",
-  },
+const steps = [
+  "Create your account",
+  "Enable location and notifications",
+  "Receive adhan alerts from nearby masjids",
 ]
 
 export default function AppNews() {
-  const [activeIndex, setActiveIndex] = useState(0)
-  const active = slides[activeIndex]
+  const [hidden, setHidden] = useState(true)
+  const [activeStep, setActiveStep] = useState(0)
 
-  function goToSlide(index) {
-    setActiveIndex(index)
+  useEffect(() => {
+    try {
+      setHidden(window.localStorage.getItem(STORAGE_KEY) === "true")
+    } catch {
+      setHidden(false)
+    }
+  }, [])
+
+  function dismiss() {
+    setHidden(true)
+    try {
+      window.localStorage.setItem(STORAGE_KEY, "true")
+    } catch { }
   }
 
-  function nextSlide() {
-    setActiveIndex((current) => (current + 1) % slides.length)
+  function closeForNow() {
+    setHidden(true)
   }
+
+  if (hidden) return null
 
   return (
-    <section style={styles.shell} className="app-news" aria-label="Jamaah mobile app announcement">
-      <div style={styles.copy}>
-        <div style={styles.badge}>New app</div>
-        <h2 style={styles.title}>Jamaah is now on mobile</h2>
-        <p style={styles.body}>
-          Download the app for prayer alerts, nearby masjids, and location-aware adhan notifications.
-        </p>
-        <div style={styles.storeRow}>
-          <a href={IOS_STORE_URL} target="_blank" rel="noopener noreferrer" style={styles.storeButton}>
-            App Store
-          </a>
-          <a href={ANDROID_STORE_URL} target="_blank" rel="noopener noreferrer" style={styles.storeButtonAlt}>
-            Google Play
-          </a>
-        </div>
+    <aside style={styles.panel} className="app-news-panel" aria-label="Jamaah mobile app">
+      <button type="button" onClick={closeForNow} style={styles.closeButton} aria-label="Close app announcement">
+        ×
+      </button>
+
+      <div style={styles.kicker}>Jamaah app</div>
+      <h2 style={styles.title}>Prayer alerts that travel with you.</h2>
+      <p style={styles.body}>
+        Get nearby masjids, adhan reminders, and location-aware prayer notifications on your phone.
+      </p>
+
+      <div style={styles.storeRow} aria-label="Download Jamaah">
+        <a href={IOS_STORE_URL} target="_blank" rel="noopener noreferrer" style={styles.primaryButton}>
+          iOS
+        </a>
+        <a href={ANDROID_STORE_URL} target="_blank" rel="noopener noreferrer" style={styles.secondaryButton}>
+          Android
+        </a>
       </div>
 
-      <div style={styles.carousel} className="app-news-carousel">
+      <div style={styles.guide} aria-label="App setup guide">
+        <div style={styles.guideHeader}>
+          <span style={styles.guideLabel}>Quick setup</span>
+          <span style={styles.guideCount}>{activeStep + 1}/{steps.length}</span>
+        </div>
         <button
           type="button"
-          onClick={nextSlide}
-          style={styles.slideButton}
-          className="app-news-slide-button"
-          aria-label="Show next app guide step"
+          onClick={() => setActiveStep((current) => (current + 1) % steps.length)}
+          style={styles.stepButton}
+          aria-label="Show next setup step"
         >
-          <GuideGraphic type={active.graphic} />
-          <span style={styles.stepCount}>Step {activeIndex + 1} of {slides.length}</span>
-          <strong style={styles.stepTitle}>{active.title}</strong>
-          <span style={styles.stepText}>{active.text}</span>
+          <span style={styles.stepNumber}>{activeStep + 1}</span>
+          <span style={styles.stepText}>{steps[activeStep]}</span>
         </button>
-
-        <div style={styles.dots} aria-label="App guide steps">
-          {slides.map((slide, index) => (
+        <div style={styles.dots}>
+          {steps.map((step, index) => (
             <button
-              key={slide.title}
+              key={step}
               type="button"
-              onClick={() => goToSlide(index)}
+              onClick={() => setActiveStep(index)}
               style={{
                 ...styles.dot,
-                ...(index === activeIndex ? styles.dotActive : null),
+                ...(index === activeStep ? styles.dotActive : null),
               }}
-              aria-label={`Show ${slide.title}`}
-              aria-pressed={index === activeIndex}
+              aria-label={`Show step ${index + 1}`}
+              aria-pressed={index === activeStep}
             />
           ))}
         </div>
       </div>
-    </section>
-  )
-}
 
-function GuideGraphic({ type }) {
-  if (type === "permissions") {
-    return (
-      <svg style={styles.graphic} viewBox="0 0 180 120" role="img" aria-label="Notifications and location illustration">
-        <rect x="50" y="12" width="80" height="96" rx="14" fill="#f8fafc" stroke="#0f766e" strokeWidth="4" />
-        <path d="M90 42c13 0 24 11 24 24H66c0-13 11-24 24-24z" fill="#ccfbf1" />
-        <path d="M90 30v12M70 66h40M76 82h28" stroke="#0f766e" strokeWidth="6" strokeLinecap="round" />
-        <circle cx="126" cy="32" r="16" fill="#fde68a" stroke="#ca8a04" strokeWidth="4" />
-        <path d="M126 24v8l6 4" stroke="#854d0e" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    )
-  }
-
-  if (type === "travel") {
-    return (
-      <svg style={styles.graphic} viewBox="0 0 180 120" role="img" aria-label="Travel and nearby masjids illustration">
-        <path d="M28 86c34-32 76-32 124 0" fill="none" stroke="#0f766e" strokeWidth="6" strokeLinecap="round" />
-        <circle cx="54" cy="72" r="10" fill="#bbf7d0" stroke="#15803d" strokeWidth="4" />
-        <circle cx="126" cy="52" r="10" fill="#bfdbfe" stroke="#1d4ed8" strokeWidth="4" />
-        <path d="M84 76l12-38 12 38-12-8-12 8z" fill="#fef3c7" stroke="#ca8a04" strokeWidth="4" strokeLinejoin="round" />
-        <path d="M40 92h100" stroke="#94a3b8" strokeWidth="5" strokeLinecap="round" />
-      </svg>
-    )
-  }
-
-  return (
-    <svg style={styles.graphic} viewBox="0 0 180 120" role="img" aria-label="Account setup illustration">
-      <rect x="44" y="16" width="92" height="88" rx="16" fill="#f8fafc" stroke="#0f766e" strokeWidth="4" />
-      <circle cx="90" cy="52" r="17" fill="#d1fae5" stroke="#047857" strokeWidth="4" />
-      <path d="M61 90c7-18 51-18 58 0" fill="#ccfbf1" stroke="#047857" strokeWidth="4" strokeLinecap="round" />
-      <path d="M58 28h64" stroke="#94a3b8" strokeWidth="5" strokeLinecap="round" />
-    </svg>
+      <button type="button" onClick={dismiss} style={styles.dismissButton}>
+        Don&apos;t show again
+      </button>
+    </aside>
   )
 }
 
 const styles = {
-  shell: {
-    display: "grid",
-    gridTemplateColumns: "1fr minmax(240px, 320px)",
-    gap: 14,
-    alignItems: "stretch",
+  panel: {
+    position: "fixed",
+    left: 16,
+    bottom: 16,
+    zIndex: 35,
+    width: "min(340px, calc(100vw - 32px))",
     background: "#ffffff",
-    border: "1px solid #d1fae5",
+    color: "#111827",
+    border: "1px solid #d1d5db",
     borderRadius: 8,
-    padding: 16,
-    margin: "0 0 18px",
-    boxShadow: "0 2px 12px rgba(15, 118, 110, 0.08)",
+    boxShadow: "0 18px 42px rgba(15, 23, 42, 0.22)",
+    padding: "16px",
   },
-  copy: {
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    minWidth: 0,
+  closeButton: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 32,
+    height: 32,
+    border: "1px solid #e5e7eb",
+    borderRadius: 8,
+    background: "#ffffff",
+    color: "#111827",
+    fontSize: 20,
+    lineHeight: 1,
+    cursor: "pointer",
   },
-  badge: {
+  kicker: {
+    display: "inline-flex",
     width: "fit-content",
     padding: "4px 8px",
     borderRadius: 8,
-    background: "#ecfeff",
-    color: "#155e75",
-    border: "1px solid #a5f3fc",
+    background: "#ecfdf5",
+    color: "#065f46",
+    border: "1px solid #a7f3d0",
     fontSize: 12,
     fontWeight: 800,
-    marginBottom: 8,
+    marginBottom: 10,
   },
   title: {
-    margin: 0,
-    color: "#064e3b",
-    fontSize: 22,
+    margin: "0 36px 0 0",
+    color: "#0f172a",
+    fontSize: 20,
     fontWeight: 800,
     lineHeight: 1.15,
   },
   body: {
     margin: "8px 0 0",
-    color: "#374151",
+    color: "#4b5563",
     fontSize: 14,
     lineHeight: 1.45,
   },
   storeRow: {
-    display: "flex",
-    flexWrap: "wrap",
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
     gap: 8,
-    marginTop: 12,
+    marginTop: 14,
   },
-  storeButton: {
+  primaryButton: {
+    display: "inline-flex",
+    minHeight: 42,
+    alignItems: "center",
+    justifyContent: "center",
     color: "#ffffff",
     background: "#047857",
     border: "1px solid #047857",
     borderRadius: 8,
-    padding: "9px 12px",
     fontSize: 14,
     fontWeight: 800,
     textDecoration: "none",
   },
-  storeButtonAlt: {
+  secondaryButton: {
+    display: "inline-flex",
+    minHeight: 42,
+    alignItems: "center",
+    justifyContent: "center",
     color: "#075985",
     background: "#e0f2fe",
     border: "1px solid #7dd3fc",
     borderRadius: 8,
-    padding: "9px 12px",
     fontSize: 14,
     fontWeight: 800,
     textDecoration: "none",
   },
-  carousel: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 8,
-    minWidth: 0,
-  },
-  slideButton: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "stretch",
-    textAlign: "left",
-    gap: 5,
-    width: "100%",
-    height: "100%",
-    border: "1px solid #bae6fd",
+  guide: {
+    marginTop: 12,
+    padding: 10,
+    border: "1px solid #e5e7eb",
     borderRadius: 8,
     background: "#f8fafc",
-    padding: 12,
-    cursor: "pointer",
   },
-  graphic: {
-    width: "100%",
-    height: 92,
-    display: "block",
+  guideHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 8,
   },
-  stepCount: {
-    color: "#0369a1",
+  guideLabel: {
+    color: "#374151",
     fontSize: 12,
     fontWeight: 800,
   },
-  stepTitle: {
-    color: "#0f172a",
-    fontSize: 16,
-    lineHeight: 1.2,
+  guideCount: {
+    color: "#6b7280",
+    fontSize: 12,
+    fontWeight: 700,
+  },
+  stepButton: {
+    display: "grid",
+    gridTemplateColumns: "32px 1fr",
+    alignItems: "center",
+    gap: 10,
+    width: "100%",
+    minHeight: 44,
+    border: 0,
+    borderRadius: 8,
+    background: "#ffffff",
+    padding: "8px 10px",
+    textAlign: "left",
+    cursor: "pointer",
+  },
+  stepNumber: {
+    display: "inline-flex",
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 8,
+    background: "#064e3b",
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: 900,
   },
   stepText: {
-    color: "#475569",
-    fontSize: 13,
-    lineHeight: 1.35,
+    color: "#111827",
+    fontSize: 14,
+    fontWeight: 800,
+    lineHeight: 1.25,
   },
   dots: {
     display: "flex",
     justifyContent: "center",
     gap: 6,
+    marginTop: 9,
   },
   dot: {
     width: 9,
     height: 9,
     borderRadius: 999,
-    border: "1px solid #0f766e",
+    border: "1px solid #047857",
     background: "#ffffff",
     padding: 0,
     cursor: "pointer",
   },
   dotActive: {
-    width: 24,
-    background: "#0f766e",
+    width: 22,
+    background: "#047857",
+  },
+  dismissButton: {
+    width: "100%",
+    marginTop: 10,
+    border: 0,
+    background: "transparent",
+    color: "#4b5563",
+    fontSize: 13,
+    fontWeight: 800,
+    textDecoration: "underline",
+    cursor: "pointer",
   },
 }
 
 if (typeof document !== "undefined") {
   const styleEl = document.createElement("style")
   styleEl.textContent = `
-    .app-news a:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 10px rgba(15, 118, 110, 0.16);
+    .app-news-panel {
+      animation: appNewsIn 180ms ease-out;
     }
-    .app-news-slide-button:hover {
-      background: #f0fdfa !important;
+    .app-news-panel a:hover,
+    .app-news-panel button:hover {
+      filter: brightness(0.98);
     }
-    @media (max-width: 720px) {
-      .app-news {
-        grid-template-columns: 1fr !important;
+    @keyframes appNewsIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @media (max-width: 640px) {
+      .app-news-panel {
+        left: 10px !important;
+        right: 10px !important;
+        bottom: 10px !important;
+        width: auto !important;
         padding: 14px !important;
-      }
-      .app-news-carousel {
-        order: -1;
       }
     }
   `

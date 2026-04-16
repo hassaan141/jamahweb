@@ -4,6 +4,7 @@
 import { Link } from "react-router-dom"
 import { useState, useEffect, useRef } from 'react'
 import moment from "moment-hijri"
+import { ANDROID_STORE_URL, IOS_STORE_URL } from "../constants/appLinks"
 
 export default function Header({
   title,
@@ -136,6 +137,26 @@ export default function Header({
             >
               <span>📄</span>
               <span>Funeral Aid Services</span>
+            </a>
+            <a
+              href={IOS_STORE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="header-menu-item"
+              onClick={() => setMenuOpen(false)}
+            >
+              <span>iOS</span>
+              <span>Download for iOS</span>
+            </a>
+            <a
+              href={ANDROID_STORE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="header-menu-item"
+              onClick={() => setMenuOpen(false)}
+            >
+              <span>GP</span>
+              <span>Download for Android</span>
             </a>
           </div>
         </>
