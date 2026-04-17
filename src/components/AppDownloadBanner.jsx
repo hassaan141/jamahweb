@@ -13,7 +13,7 @@ export default function AppDownloadBanner() {
 
       <div style={styles.copy}>
         <div style={styles.kicker}>Jamaah mobile app</div>
-        <h2 style={styles.title}>Get adhan alerts from nearby masjids.</h2>
+        <h2 style={styles.title}>Get adhan notifications from your masjid, anywhere on your phone.</h2>
         <p style={styles.text}>Enable location and notifications to receive prayer reminders as you travel.</p>
       </div>
 
