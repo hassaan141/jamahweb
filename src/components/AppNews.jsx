@@ -76,20 +76,10 @@ export default function AppNews() {
           <div style={styles.logoPlate}>
             <img src="/logo.png" alt="" style={styles.logo} />
           </div>
-          <div style={styles.phoneFrame}>
-            <div style={styles.phoneTop} />
-            <div style={styles.phoneContent}>
-              <div style={styles.phoneRow}>
-                <span style={styles.phoneDot} />
-                <span style={styles.phoneLine} />
-              </div>
-              <div style={styles.phonePrayer}>Dhuhr</div>
-              <div style={styles.phoneTime}>1:22 PM</div>
-              <div style={styles.phoneAlert}>
-                <FiBell aria-hidden />
-                <span>Adhan nearby</span>
-              </div>
-            </div>
+          <div style={styles.screenStack} className="app-news-screen-stack" aria-hidden>
+            <img src="/maps.png" alt="" style={{ ...styles.screenImage, ...styles.mapScreen }} />
+            <img src="/home.png" alt="" style={{ ...styles.screenImage, ...styles.homeScreen }} />
+            <img src="/location.png" alt="" style={{ ...styles.screenImage, ...styles.locationScreen }} />
           </div>
         </div>
 
@@ -219,69 +209,41 @@ const styles = {
     height: 58,
     objectFit: "contain",
   },
-  phoneFrame: {
-    width: "min(210px, 100%)",
+  screenStack: {
+    position: "relative",
+    width: "min(250px, 100%)",
+    height: 330,
     alignSelf: "center",
-    padding: "12px 12px 16px",
-    borderRadius: 28,
-    background: "#071814",
-    boxShadow: "0 22px 48px rgba(0, 0, 0, 0.28)",
   },
-  phoneTop: {
-    width: 58,
-    height: 5,
-    margin: "0 auto 14px",
-    borderRadius: 999,
-    background: "#334155",
+  screenImage: {
+    position: "absolute",
+    display: "block",
+    objectFit: "cover",
+    borderRadius: 18,
+    border: "1px solid rgba(255, 255, 255, 0.42)",
+    boxShadow: "0 22px 48px rgba(0, 0, 0, 0.3)",
+    background: "#10231d",
   },
-  phoneContent: {
-    minHeight: 232,
-    borderRadius: 20,
-    padding: 16,
-    background: "#f8fafc",
-    color: "#0f172a",
+  mapScreen: {
+    left: 28,
+    top: 10,
+    width: 178,
+    height: 306,
+    zIndex: 1,
   },
-  phoneRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
+  homeScreen: {
+    left: 0,
+    top: 92,
+    width: 112,
+    height: 190,
+    zIndex: 2,
   },
-  phoneDot: {
-    width: 14,
-    height: 14,
-    borderRadius: 999,
-    background: "#047857",
-  },
-  phoneLine: {
-    width: 86,
-    height: 10,
-    borderRadius: 999,
-    background: "#d1fae5",
-  },
-  phonePrayer: {
-    marginTop: 36,
-    color: "#065f46",
-    fontSize: 18,
-    fontWeight: 900,
-  },
-  phoneTime: {
-    marginTop: 6,
-    color: "#0f172a",
-    fontSize: 38,
-    fontWeight: 900,
-    letterSpacing: 0,
-  },
-  phoneAlert: {
-    marginTop: 24,
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    padding: "10px 12px",
-    borderRadius: 8,
-    background: "#ecfdf5",
-    color: "#065f46",
-    fontSize: 13,
-    fontWeight: 800,
+  locationScreen: {
+    right: 0,
+    top: 114,
+    width: 116,
+    height: 190,
+    zIndex: 3,
   },
   contentPanel: {
     padding: "46px 40px 28px",
@@ -468,16 +430,30 @@ if (typeof document !== "undefined") {
       .app-news-visual > div:first-child {
         flex: 0 0 auto;
       }
-      .app-news-visual > div:last-child {
-        width: 128px !important;
-        padding: 8px !important;
+      .app-news-screen-stack {
+        width: 168px !important;
+        height: 122px !important;
       }
-      .app-news-visual > div:last-child > div:last-child {
-        min-height: 104px !important;
-        padding: 10px !important;
+      .app-news-screen-stack img:nth-child(1) {
+        left: 46px !important;
+        top: 0 !important;
+        width: 72px !important;
+        height: 120px !important;
+        border-radius: 10px !important;
       }
-      .app-news-visual [style*="font-size: 38px"] {
-        font-size: 22px !important;
+      .app-news-screen-stack img:nth-child(2) {
+        left: 0 !important;
+        top: 34px !important;
+        width: 70px !important;
+        height: 78px !important;
+        border-radius: 10px !important;
+      }
+      .app-news-screen-stack img:nth-child(3) {
+        right: 0 !important;
+        top: 30px !important;
+        width: 70px !important;
+        height: 82px !important;
+        border-radius: 10px !important;
       }
       .app-news-modal > div:last-child {
         padding: 22px 18px 18px !important;

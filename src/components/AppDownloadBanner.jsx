@@ -1,19 +1,14 @@
 "use client"
 
 import { FaApple, FaGooglePlay } from "react-icons/fa"
-import { FiBell, FiMapPin } from "react-icons/fi"
 import { ANDROID_STORE_URL, IOS_STORE_URL } from "../constants/appLinks"
 
 export default function AppDownloadBanner() {
   return (
     <section style={styles.banner} className="app-download-banner" aria-label="Download Jamaah app">
-      <div style={styles.iconStack} aria-hidden>
-        <span style={styles.iconBubble}>
-          <FiBell />
-        </span>
-        <span style={styles.pinBubble}>
-          <FiMapPin />
-        </span>
+      <div style={styles.previewStack} aria-hidden>
+        <img src="/home.png" alt="" style={styles.previewHome} />
+        <img src="/maps.png" alt="" style={styles.previewMap} />
       </div>
 
       <div style={styles.copy}>
@@ -39,7 +34,7 @@ export default function AppDownloadBanner() {
 const styles = {
   banner: {
     display: "grid",
-    gridTemplateColumns: "auto 1fr auto",
+    gridTemplateColumns: "72px 1fr auto",
     alignItems: "center",
     gap: 14,
     margin: "0 0 18px",
@@ -49,40 +44,35 @@ const styles = {
     border: "1px solid #a7f3d0",
     boxShadow: "0 10px 28px rgba(15, 118, 110, 0.12)",
   },
-  iconStack: {
+  previewStack: {
     position: "relative",
-    width: 52,
-    height: 52,
+    width: 72,
+    height: 58,
   },
-  iconBubble: {
+  previewHome: {
     position: "absolute",
     left: 0,
-    top: 0,
-    display: "inline-flex",
-    width: 42,
-    height: 42,
-    alignItems: "center",
-    justifyContent: "center",
+    top: 4,
+    width: 38,
+    height: 50,
     borderRadius: 8,
-    background: "#064e3b",
-    color: "#ffffff",
-    fontSize: 20,
-    boxShadow: "0 8px 18px rgba(6, 78, 59, 0.2)",
+    objectFit: "cover",
+    border: "1px solid rgba(255, 255, 255, 0.8)",
+    boxShadow: "0 8px 18px rgba(6, 78, 59, 0.16)",
+    background: "#10231d",
   },
-  pinBubble: {
+  previewMap: {
     position: "absolute",
     right: 0,
-    bottom: 0,
-    display: "inline-flex",
-    width: 30,
-    height: 30,
-    alignItems: "center",
-    justifyContent: "center",
+    top: 0,
+    width: 44,
+    height: 58,
     borderRadius: 8,
-    background: "#e0f2fe",
-    border: "1px solid #7dd3fc",
-    color: "#075985",
-    fontSize: 16,
+    objectFit: "cover",
+    objectPosition: "center",
+    border: "1px solid rgba(255, 255, 255, 0.8)",
+    boxShadow: "0 10px 22px rgba(6, 78, 59, 0.2)",
+    background: "#10231d",
   },
   copy: {
     minWidth: 0,
