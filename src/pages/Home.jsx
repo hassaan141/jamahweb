@@ -8,6 +8,7 @@ import MapView from "../components/MapView"
 import Header from "../components/Header"
 import Footer from "../components/Footer"
 import AppNews from "../components/AppNews"
+import AppDownloadBanner from "../components/AppDownloadBanner"
 
 export default function Home() {
   const navigate = useNavigate()
@@ -128,6 +129,7 @@ export default function Home() {
             </div>
             <div style={styles.verseMeta}>Quran 72:18 • Dr. Mustafa Khattab</div>
           </div>
+          <AppDownloadBanner />
           <AppNews />
           <div style={styles.card}>
             <MasjidDropdown masjids={masjids} selectedMasjid={null} onSelect={handleSelect} />

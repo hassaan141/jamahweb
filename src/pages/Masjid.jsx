@@ -12,6 +12,7 @@ import Footer from "../components/Footer"
 import ActionButtons from "../components/ActionButtons"
 import Amenities from "../components/Amenities"
 import AppNews from "../components/AppNews"
+import AppDownloadBanner from "../components/AppDownloadBanner"
 
 // Helper to get today's date string (YYYY-MM-DD) for comparison
 function getTodayString() {
@@ -213,6 +214,7 @@ export default function Masjid() {
               )}
             </div>
           </div>
+          <AppDownloadBanner />
           <AppNews />
           {prayerTimes ? (
             prayerLoading ? (
