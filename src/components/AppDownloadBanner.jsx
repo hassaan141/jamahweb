@@ -1,7 +1,6 @@
 "use client"
 
-import { FaApple, FaGooglePlay } from "react-icons/fa"
-import { ANDROID_STORE_URL, IOS_STORE_URL } from "../constants/appLinks"
+import StoreBadges from "./StoreBadges"
 
 export default function AppDownloadBanner() {
   return (
@@ -18,14 +17,7 @@ export default function AppDownloadBanner() {
       </div>
 
       <div style={styles.actions}>
-        <a href={IOS_STORE_URL} target="_blank" rel="noopener noreferrer" style={styles.primaryButton}>
-          <FaApple aria-hidden />
-          <span>iOS</span>
-        </a>
-        <a href={ANDROID_STORE_URL} target="_blank" rel="noopener noreferrer" style={styles.secondaryButton}>
-          <FaGooglePlay aria-hidden />
-          <span>Android</span>
-        </a>
+        <StoreBadges compact />
       </div>
     </section>
   )
@@ -98,41 +90,7 @@ const styles = {
     lineHeight: 1.35,
   },
   actions: {
-    display: "flex",
-    gap: 8,
-    alignItems: "center",
-  },
-  primaryButton: {
-    minHeight: 40,
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 7,
-    padding: "0 13px",
-    borderRadius: 8,
-    background: "#047857",
-    border: "1px solid #047857",
-    color: "#ffffff",
-    textDecoration: "none",
-    fontSize: 13,
-    fontWeight: 900,
-    whiteSpace: "nowrap",
-  },
-  secondaryButton: {
-    minHeight: 40,
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 7,
-    padding: "0 13px",
-    borderRadius: 8,
-    background: "#ffffff",
-    border: "1px solid #7dd3fc",
-    color: "#075985",
-    textDecoration: "none",
-    fontSize: 13,
-    fontWeight: 900,
-    whiteSpace: "nowrap",
+    minWidth: 270,
   },
 }
 

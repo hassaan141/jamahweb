@@ -1,9 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { FaApple, FaGooglePlay } from "react-icons/fa"
 import { FiBell, FiMapPin, FiUserPlus, FiX } from "react-icons/fi"
-import { ANDROID_STORE_URL, IOS_STORE_URL } from "../constants/appLinks"
+import StoreBadges from "./StoreBadges"
 
 const STORAGE_KEY = "jamaah-app-news-dismissed"
 
@@ -74,7 +73,7 @@ export default function AppNews() {
 
         <div style={styles.visualPanel} className="app-news-visual">
           <div style={styles.logoPlate}>
-            <img src="/logo.png" alt="" style={styles.logo} />
+            <img src="/jamaah-logo.png" alt="" style={styles.logo} />
           </div>
           <div style={styles.screenStack} className="app-news-screen-stack" aria-hidden>
             <img src="/maps.png" alt="" style={{ ...styles.screenImage, ...styles.mapScreen }} />
@@ -91,14 +90,7 @@ export default function AppNews() {
           </p>
 
           <div style={styles.storeRow}>
-            <a href={IOS_STORE_URL} target="_blank" rel="noopener noreferrer" style={styles.primaryButton}>
-              <FaApple aria-hidden />
-              <span>Download for iOS</span>
-            </a>
-            <a href={ANDROID_STORE_URL} target="_blank" rel="noopener noreferrer" style={styles.secondaryButton}>
-              <FaGooglePlay aria-hidden />
-              <span>Get it on Android</span>
-            </a>
+            <StoreBadges />
           </div>
 
           <div style={styles.guideCard}>
@@ -273,38 +265,7 @@ const styles = {
     lineHeight: 1.5,
   },
   storeRow: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: 10,
     marginTop: 22,
-  },
-  primaryButton: {
-    minHeight: 48,
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    borderRadius: 8,
-    background: "#047857",
-    border: "1px solid #047857",
-    color: "#ffffff",
-    textDecoration: "none",
-    fontSize: 14,
-    fontWeight: 900,
-  },
-  secondaryButton: {
-    minHeight: 48,
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    borderRadius: 8,
-    background: "#e0f2fe",
-    border: "1px solid #7dd3fc",
-    color: "#075985",
-    textDecoration: "none",
-    fontSize: 14,
-    fontWeight: 900,
   },
   guideCard: {
     marginTop: 18,
