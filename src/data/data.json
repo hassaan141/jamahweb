@@ -9,6 +9,15 @@
     "externalUrl": "https://thefmcs.ca/prayer"
   },
   {
+    "id": "marpole-mussalah",
+    "name": "Marpole Mussalah",
+    "address": "8879 Selkirk St, Vancouver, British Columbia, Canada",
+    "city": "Vancouver",
+    "latitude": 49.2045756341235,
+    "longitude": -123.133633282007,
+    "externalUrl": "https://www.nwmis.org/prayers"
+  },
+  {
     "id": "masjid-al-hidayah",
     "name": "Masjid Al Hidayah Port Coquitlam",
     "address": "Masjid Al Hidayah",
