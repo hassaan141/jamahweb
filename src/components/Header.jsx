@@ -4,6 +4,7 @@
 import { Link } from "react-router-dom"
 import { useState, useEffect, useRef } from 'react'
 import moment from "moment-hijri"
+import { APP_STORE_URL, PLAY_STORE_URL } from "./AppLinks"
 
 export default function Header({
   title,
@@ -105,6 +106,25 @@ export default function Header({
           </a>
         </div>
 
+        <div style={styles.appBadges} className="header-app-badges">
+          <a
+            href={APP_STORE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Download on the App Store"
+          >
+            <img src="/badges/app-store-badge.svg" alt="Download on the App Store" style={styles.badgeImg} />
+          </a>
+          <a
+            href={PLAY_STORE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Get it on Google Play"
+          >
+            <img src="/badges/google-play-badge.svg" alt="Get it on Google Play" style={styles.badgeImg} />
+          </a>
+        </div>
+
         {/* Mobile menu button */}
         <button
           type="button"
@@ -117,6 +137,15 @@ export default function Header({
         >
           <span style={styles.menuIcon} aria-hidden>☰</span>
         </button>
+      </div>
+
+      <div style={styles.appBadgesMobile} className="header-app-badges-mobile">
+        <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer" aria-label="Download on the App Store">
+          <img src="/badges/app-store-badge.svg" alt="Download on the App Store" style={styles.badgeImgMobile} />
+        </a>
+        <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer" aria-label="Get it on Google Play">
+          <img src="/badges/google-play-badge.svg" alt="Get it on Google Play" style={styles.badgeImgMobile} />
+        </a>
       </div>
 
       {menuOpen && (
@@ -283,6 +312,29 @@ const styles = {
     boxShadow: "inset 0 1px 0 rgba(255,255,255,0.6)",
     whiteSpace: "nowrap",
   },
+  appBadges: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+  },
+  badgeImg: {
+    display: "block",
+    height: 36,
+    width: "auto",
+  },
+  appBadgesMobile: {
+    display: "none",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    padding: "8px 12px 10px",
+    borderTop: "1px solid #f3f4f6",
+  },
+  badgeImgMobile: {
+    display: "block",
+    height: 32,
+    width: "auto",
+  },
   menuButton: {
     display: 'none',
     alignItems: 'center',
@@ -351,20 +403,26 @@ if (typeof document !== "undefined") {
   styleEl.textContent = `
     a[style*="metaLink"]:hover { background: #d1fae5 !important; }
     a[style*="backLink"]:hover { background: #d1fae5 !important; transform: translateY(-1px); }
+    .header-app-badges a { transition: opacity 0.15s ease; }
+    .header-app-badges a:hover { opacity: 0.8; }
     @media (max-width: 768px) {
       .header-topbar { grid-template-columns: 1fr !important; gap: 10px !important; }
       .header-meta { justify-content: center !important; }
+      .header-app-badges { justify-content: center !important; }
       .header-back { position: static !important; margin-bottom: 8px !important; }
     }
     @media (max-width: 640px) {
       .header-title { font-size: 18px !important; }
-      .header-topbar { 
-        padding: 8px 12px !important; 
+      .header-topbar {
+        padding: 8px 12px !important;
         /* FIX HERE: Change to auto 1fr auto to position elements correctly */
-        grid-template-columns: auto 1fr auto !important; 
-        gap: 12px !important;
+        grid-template-columns: auto 1fr auto !important;
+        gap: 10px !important;
         align-items: center; /* Ensure vertical alignment */
       }
+      /* Full-size badges live in the top bar only on wider screens; mobile gets its own row below */
+      .header-app-badges { display: none !important; }
+      .header-app-badges-mobile { display: flex !important; }
       /* Hide logo on mobile for more space */
       .header-topbar .logoWrap { display: none !important; }
       /* Adjust brand text positioning */

@@ -1,5 +1,7 @@
 "use client"
 
+import { APP_STORE_URL, PLAY_STORE_URL } from "./AppLinks"
+
 export default function Footer() {
   return (
     <footer style={styles.footer}>
@@ -17,7 +19,21 @@ export default function Footer() {
               jamahcommunityapp@gmail.com
             </a>
           </div>
+          <div style={styles.section}>
+            <h3 style={styles.heading}>Get the App</h3>
+            <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer" style={styles.link}>
+              App Store
+            </a>
+            <span style={styles.linkSep}>/</span>
+            <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer" style={styles.link}>
+              Google Play
+            </a>
+          </div>
         </div>
+        <p style={styles.appNote}>
+          Download the app, sign up, then pin your masjid — or turn on location — to get notified
+          automatically for prayers at the masjid closest to you.
+        </p>
         <div style={styles.copyright}>
           <p style={styles.copyrightText}>Â© {new Date().getFullYear()} Awqat. All rights reserved.</p>
         </div>
@@ -37,6 +53,19 @@ const styles = {
     margin: "0 auto",
     /* reduced padding to make footer less tall */
     padding: "20px 12px 12px",
+  },
+  linkSep: {
+    fontSize: 13,
+    color: "#d1d5db",
+    margin: "0 2px",
+  },
+  appNote: {
+    maxWidth: 480,
+    margin: "0 auto 16px",
+    textAlign: "center",
+    fontSize: 12.5,
+    color: "#9ca3af",
+    lineHeight: 1.5,
   },
   content: {
     display: "flex",
